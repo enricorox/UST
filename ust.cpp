@@ -31,19 +31,21 @@ string OUTPUT_FILENAME;
 
 enum DEBUGFLAG_T { NONE = 0,  UKDEBUG = 6, VERIFYINPUT = 1, INDEGREEPRINT = 2, DFSDEBUGG = 3, PARTICULAR = 4, NODENUMBER_DBG = 5, OLDNEWMAP = 9, PRINTER = 10, SINKSOURCE = 12};
 
+// alorithm variations
 enum ALGOMODE_T { BASIC = 0, INDEGREE_DFS = 1, INDEGREE_DFS_1 = 2, OUTDEGREE_DFS = 3, OUTDEGREE_DFS_1 = 4, INDEGREE_DFS_INVERTED = 5, PLUS_INDEGREE_DFS = 6, RANDOM_DFS = 7, NODEASSIGN = 8, SOURCEFIRST = 9, TWOWAYEXT = 10, PROFILE_ONLY = 11, EPPRIOR=12, GRAPHPRINT = 13, TIGHTUB = 14, BRACKETCOMP = 15};
 
 bool FLG_NEWUB = true;
 bool FLG_ABUNDANCE = false;
 
 DEBUGFLAG_T DBGFLAG = NONE; //NODENUMBER_DBG
+
+// set to two way extend (like prophAsm)
 ALGOMODE_T ALGOMODE = TWOWAYEXT;
 
 string mapmode[] = {"basic", "indegree_dfs", "indegree_dfs_initial_sort_only", "outdegree_dfs", "outdegree_dfs_initial_sort_only", "inverted_indegree_dfs", "plus_indegree_dfs", "random_dfs", "node_assign", "source_first", "twoway", "profile_only", "endpoint_priority", "graph_print", "tight_ub", "tip"
 };
 string modefilename[] = {"Fwd", "indegree_dfs", "indegree_dfs_initial_sort_only", "outdegree_dfs", "outdegree_dfs_initial_sort_only", "inverted_indegree_dfs", "plus_indegree_dfs", "random_dfs", "node_assign", "source_first", "", "profile_only", "endpoint_priority", "graph_print", "tight_ub", "Tip"
 };
-
 
 typedef tuple<int,int,int, int> fourtuple; // uid, walkid, pos, isTip
 
@@ -68,15 +70,15 @@ typedef struct {
 } new_node_info_t;
 
 typedef struct {
-    int serial;
-    int ln;
+    int serial; // bcalm id
+    int ln; // length
 } unitig_struct_t;
 
 typedef struct {
     //1 means +, 0 means -
     bool left;
     bool right;
-    int toNode;
+    int toNode; // next node id
 } edge_t;
 
 typedef struct {
@@ -133,19 +135,23 @@ vector<list<int> > newToOld;
 vector<int> walkFirstNode; //given a walk id, what's the first node of that walk
 unordered_map<int, vector<edge_t> > sinkSrcEdges; //int is the unitig id (old id)
 
+/**
+ * Get file name from its path
+ */
 string getFileName(const string& s) {
-
    char sep = '/';
-
    size_t i = s.rfind(sep, s.length());
-   if (i != string::npos) {
+
+   if (i != string::npos) { // rfind() not found
       return(s.substr(i+1, s.length() - i));
    }
 
-   return("");
+   return "";
 }
 
-
+/**
+ * Merge two kmers
+ */
 inline string plus_strings(const string& a, const string& b, size_t kmersize) {
     if (a == "") return b;
     if (b == "") return a;
@@ -153,11 +159,17 @@ inline string plus_strings(const string& a, const string& b, size_t kmersize) {
     return ret;
 }
 
+/**
+ * Delete spaces from a string
+ */
 string delSpaces(string &str) {
     str.erase(std::remove(str.begin(), str.end(), ' '), str.end());
     return str;
 }
 
+/**
+ * Conver '+' to true and '-' to false
+ */
 bool charToBool(char c) {
     if (c == '+') {
         return true;
@@ -167,6 +179,16 @@ bool charToBool(char c) {
     }
 }
 
+/**
+ * Convert true to '+' and false to '-'
+ */
+inline char boolToCharSign(bool sign) {
+    return sign ? '+' : '-';
+}
+
+/**
+ * Reverse complement sequence
+ */
 string reverseComplement(string base) {
     size_t len = base.length();
     char* out = new char[len + 1];
@@ -202,13 +224,11 @@ int countOutArcs(int node) {
 }
 
 
-inline char boolToCharSign(bool sign) {
-    return (sign == true) ? '+' : '-';
-}
-
-
 // @@ --- ALL PRINTING CODE --- //
 
+/**
+ * Print bcalm dbg for debug
+ */
 void printBCALMGraph(vector<vector<edge_t> > adjList) {
     for (int i = 0; i < adjList.size(); i++) {
         cout << i << "# ";
@@ -219,10 +239,11 @@ void printBCALMGraph(vector<vector<edge_t> > adjList) {
     }
 }
 
+// GroupMerger----------------------------------------------------------------------------------------------------------
 class GroupMerger {
 public:
-    map<int, bool> fwdVisited;
-    map<int, bool> bwdVisited;
+    map<int, bool> fwdVisited; // forward
+    map<int, bool> bwdVisited; // backward
     map<int, int> bwdWalkId;
     map<int, int> fwdWalkId;
     GroupMerger() {
@@ -235,9 +256,10 @@ public:
     }
     ~GroupMerger() {
     }
-};
+};// GroupMerger--------------------------------------------------------------------------------------------------------
 
 
+// DisjointSet ---------------------------------------------------------------------------------------------------------
 class DisjointSet {
     unordered_map<int, int> parent;
 
@@ -266,9 +288,10 @@ public:
     ~DisjointSet(){
     }
 
-};
+}; // DisjointSet ------------------------------------------------------------------------------------------------------
 
 
+// Graph ---------------------------------------------------------------------------------------------------------------
 class Graph {
 public:
     size_t V = adjList.size();
@@ -555,6 +578,8 @@ public:
         uEdge.toNode = u;
         s.push(uEdge);
 
+        // reading edges and extending node
+        // TODO: insert code below
         while (!s.empty()) {
             edge_t xEdge = s.top();
 
@@ -567,9 +592,6 @@ public:
                 color[x] = 'g';
                 s.push(xEdge);
                 vector<edge_t> adjx = adjList.at(x);
-                if(ALGOMODE == RANDOM_DFS){
-                    random_shuffle ( adjx.begin(), adjx.end() );
-                }
 
 //                if(ALGOMODE == EPPRIOR){
 //                    sort( adjx.begin( ), adjx.end( ), [ ]( const edge_t& lhs, const edge_t& rhs )
@@ -577,6 +599,10 @@ public:
 //                             return global_priority[lhs.toNode]   <  global_priority[rhs.toNode]  ;
 //                         });
 //                }
+
+                if(ALGOMODE == RANDOM_DFS){
+                    random_shuffle ( adjx.begin(), adjx.end() );
+                }
 
                 if(ALGOMODE == INDEGREE_DFS){
                     sort( adjx.begin( ), adjx.end( ), [ ]( const edge_t& lhs, const edge_t& rhs )
@@ -621,13 +647,12 @@ public:
                 // Now our branching code ::
                 // For a white x
                 // Consider 2 case:
-                // Case 1. p[x] = -1, it can happen in two way, x is the first one ever in this connected component, or no one wanted to take x
+                // Case 1. p[x] = -1, it can happen in two-way, x is the first one ever in this connected component, or no one wanted to take x
                 // either way, if p[x] = -1, i can be representative of a new node in new graph
                 // Case 2. p[x] != -1, so x won't be the representative/head of a newHome. x just gets added to its parent's newHome.
                 int u = unitigs.at(x).ln; //unitig length
 
                 if (p_dfs[x] == -1) {
-
                     list<int> xxx;
                     xxx.push_back(x);
                     newToOld.push_back(xxx);
@@ -756,8 +781,7 @@ public:
                                         // oldToNew[y].serial
 
                                         disSet.Union(x, y);
-                                    gmerge.connectGroups(oldToNew[x].serial,oldToNew[y].serial );
-
+                                        gmerge.connectGroups(oldToNew[x].serial,oldToNew[y].serial );
                                     }
                                 }
                             }
@@ -777,10 +801,7 @@ public:
         }
     }
 
-
-
     void DFS() {
-
         if(ALGOMODE == NODEASSIGN){
             for (int i=0; i<V; i++) {
                 nodeSign[i] = true;
@@ -902,10 +923,9 @@ public:
             ofstream uidSequenceFile;
             uidSequenceFile.open("uidSeq"+modefilename[ALGOMODE]+".txt");
 
-
             for ( const auto& p: gmerge.fwdWalkId)
             {
-                if(gmerge.fwdVisited[p.first] == false){
+                if(!gmerge.fwdVisited[p.first]){
 
                     int fromnode =p.first;
                     int tonode = p.second;
@@ -919,7 +939,7 @@ public:
 
 
                     if(gmerge.fwdVisited.count(tonode)>0){
-                        while(gmerge.fwdVisited[tonode] == false){
+                        while(!gmerge.fwdVisited[tonode]){
                             gmerge.fwdVisited[tonode] = true;
                             tonode = gmerge.fwdWalkId[tonode];
                             gmerge.bwdVisited[tonode] = true;
@@ -930,7 +950,7 @@ public:
                         }
                     }
                     if(gmerge.bwdVisited.count(fromnode)>0){
-                        while(gmerge.bwdVisited[fromnode] == false){
+                        while(!gmerge.bwdVisited[fromnode]){
                             gmerge.bwdVisited[fromnode] = true;
                             fromnode = gmerge.bwdWalkId[fromnode];
                             gmerge.fwdVisited[fromnode] = true;
@@ -1184,6 +1204,10 @@ void formattedOutputForwardExt(Graph &G){
     plainfile.close();
 }
 
+/**
+ * Bcalm file parser
+ *
+*/
 int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unitigs) {
     ifstream unitigFile;
     unitigFile.open(unitigFileName);
@@ -1208,6 +1232,7 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
             edgesline[0] = '\0';
             sscanf(line.c_str(), "%*c %d %s", &unitig_struct.serial, lnline);
 
+            // check if it's a bad file
 			if(	line.find("ab:Z") == string::npos){
 				cout<<"Incorrect input format. Try using flag -a 0."<<endl;
 				exit(3);
@@ -1229,15 +1254,15 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
 
            sscanf(line.substr(Lpos, line.length() - Lpos).c_str(), "%[^\n]s", edgesline);
 
-            if(unitig_struct.ln < smallestK){
-                           smallestK = unitig_struct.ln ;
-                       }
+            if(unitig_struct.ln < smallestK)
+                smallestK = unitig_struct.ln;
+
             if(unitig_struct.ln < K){
                 printf("Wrong k! Try again with correct k value. \n");
                 exit(2);
             }
 
-        }else{
+        }else{ // without counts
             edgesline[0] = '\0';
             sscanf(line.c_str(), "%*c %d %s  %s  %s %[^\n]s", &unitig_struct.serial, lnline, kcline, kmline, edgesline);
 
@@ -1250,9 +1275,9 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
             sscanf(lnline, "%*5c %d", &unitig_struct.ln);
 
 
-			if(unitig_struct.ln < smallestK){
-                           smallestK = unitig_struct.ln ;
-                       }
+			if(unitig_struct.ln < smallestK)
+                smallestK = unitig_struct.ln;
+
 			if(unitig_struct.ln < K){
                 printf("Wrong k! Try again with correct k value. \n");
                 exit(2);
@@ -1276,7 +1301,7 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
                 edge_t newEdge;
 
                 bool DELSELFLOOP=true;
-                if(DELSELFLOOP){
+                if(DELSELFLOOP){ // delete self loops!!!
                     if((unitig_struct.serial)!= nodeNum){
                         newEdge.left = charToBool(c1);
                         newEdge.right = charToBool(c2);
@@ -1343,7 +1368,7 @@ int main(int argc, char** argv) {
     int c ;
 
     ///*
-    if(DEBUGMODE==false){
+    if(!DEBUGMODE){
         while( ( c = getopt (argc, argv, "i:k:a:") ) != -1 )
         {
             switch(c)
@@ -1424,7 +1449,7 @@ int main(int argc, char** argv) {
 
     double startTime = readTimer();
     cout << "## Please wait while we read input file.... " << UNITIG_FILE << ": k = "<<K<<endl;
-    if (EXIT_FAILURE == read_unitig_file(UNITIG_FILE, unitigs)) {
+    if (read_unitig_file(UNITIG_FILE, unitigs) == EXIT_FAILURE) {
         return EXIT_FAILURE;
     }
     infile.close();

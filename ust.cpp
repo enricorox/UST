@@ -2,7 +2,7 @@
 // --- VERSION 1.0 ----
 // Author: amatur, Last Edited: Nov 1
 #include <cmath>
-#include<cstring>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -22,6 +22,9 @@
 #include <deque>
 #include <unistd.h>
 #include <tuple>
+#include <random>
+#include <chrono>
+
 using namespace std;
 
 bool DEBUGMODE = false;
@@ -39,13 +42,41 @@ bool FLG_ABUNDANCE = false;
 
 DEBUGFLAG_T DBGFLAG = NONE; //NODENUMBER_DBG
 
-// set to two way extend (like prophAsm)
+// set to two-way extend (like prophAsm)
 ALGOMODE_T ALGOMODE = TWOWAYEXT;
 
 string mapmode[] = {"basic", "indegree_dfs", "indegree_dfs_initial_sort_only", "outdegree_dfs", "outdegree_dfs_initial_sort_only", "inverted_indegree_dfs", "plus_indegree_dfs", "random_dfs", "node_assign", "source_first", "twoway", "profile_only", "endpoint_priority", "graph_print", "tight_ub", "tip"
 };
 string modefilename[] = {"Fwd", "indegree_dfs", "indegree_dfs_initial_sort_only", "outdegree_dfs", "outdegree_dfs_initial_sort_only", "inverted_indegree_dfs", "plus_indegree_dfs", "random_dfs", "node_assign", "source_first", "", "profile_only", "endpoint_priority", "graph_print", "tight_ub", "Tip"
 };
+
+enum heuristic{
+    DEFAULT, SEED_RANDOM_UNITIGS, SEED_SMALLER_UNITIGS, SEED_BIGGER_UNITIGS, SEED_MORE_CONNECTED, SEED_LESS_CONNECTED, SEED_LESS_CONNECTED_BIGGER_UNITIG,
+    EXPLORE_BIGGER_NEIGHBOUR, EXPLORE_SMALLER_NEIGHBOUR, SEED_LESS_CONNECTED_BIGGER_UNITIG_EXPLORE_SMALLER_NEIGHBOUR,
+    EXPLORE_LESS_CONNECTED, EXPLORE_MORE_CONNECTED
+};
+
+struct heuristic_name_t{
+    heuristic heur;
+    string name;
+};
+
+vector<heuristic_name_t> heuristic_dic = {
+        {DEFAULT,"d"},
+        // seed
+        {SEED_RANDOM_UNITIGS,"ru"}, {SEED_SMALLER_UNITIGS, "suf"}, {SEED_BIGGER_UNITIGS, "buf"},
+        {SEED_MORE_CONNECTED,"mcf"}, {SEED_LESS_CONNECTED, "lcf"},
+        // explore
+        {EXPLORE_LESS_CONNECTED,"clc"}, {EXPLORE_MORE_CONNECTED, "cmc"},
+        {EXPLORE_BIGGER_NEIGHBOUR,"bnf"}, {EXPLORE_SMALLER_NEIGHBOUR, "snf"},
+        // combo
+        {SEED_LESS_CONNECTED_BIGGER_UNITIG,"lcbu"},
+        {SEED_LESS_CONNECTED_BIGGER_UNITIG_EXPLORE_SMALLER_NEIGHBOUR, "lcbusn"}
+
+};
+
+vector<string> heuristic_names = {"d", "ru", "suf", "buf", "mcf", "lcf", "lcbu", "bnf", "snf", "lcbusn", "clc", "cmc"};
+heuristic FLG_HEURISTIC = DEFAULT;
 
 typedef tuple<int,int,int, int> fourtuple; // uid, walkid, pos, isTip
 
@@ -75,7 +106,7 @@ typedef struct {
 } unitig_struct_t;
 
 typedef struct {
-    //1 means +, 0 means -
+    //true means +, false means -
     bool left;
     bool right;
     int toNode; // next node id
@@ -123,10 +154,10 @@ int* global_issinksource;
 
 map<pair <int, int>, int> inOutCombo;
 
-vector<vector<edge_t> > adjList;
+vector<vector<edge_t> > adjList; // adjacency list
 vector<vector<edge_t> > reverseAdjList;
 
-vector<unitig_struct_t> unitigs;
+vector<unitig_struct_t> unitigs; // unitigs vector
 map<int, string> newSequences;
 map<int, string> newNewSequences; //int is the unitig id (old id)
 set<int> newNewMarker;
@@ -463,7 +494,7 @@ public:
                         sharedparent_count += spNeighborCount[1] - 1 ;
                     }
             }
-            if(FLG_NEWUB == false){
+            if(!FLG_NEWUB){
                 //ENDPOINT SIDE UPPER BOUND
                 for(edge_t e_xy: elist){
                     int y = e_xy.toNode;
@@ -579,7 +610,6 @@ public:
         s.push(uEdge);
 
         // reading edges and extending node
-        // TODO: insert code below
         while (!s.empty()) {
             edge_t xEdge = s.top();
 
@@ -659,7 +689,6 @@ public:
                     oldToNew[x].serial = countNewNode++; // countNewNode starts at 0, then keeps increasing
                     oldToNew[x].finalWalkId = oldToNew[x].serial;
 
-
                     //added while doing bracket comp
                     walkFirstNode.push_back(x);
 
@@ -667,37 +696,31 @@ public:
                     oldToNew[x].startPosWithKOverlap = 1;
                     if (u < K) {
                         oldToNew[x].endPosWithKOVerlap = 1; // do we actually see this? yes
-                        if(DBGFLAG == UKDEBUG){
-                            cout<< "node: "<< x<<"u< k ***** u = "<<u<<endl;
-                        }
-                    } else {
+                        if (DBGFLAG == UKDEBUG)
+                            cout << "node: " << x << "u< k ***** u = " << u << endl;
+                    } else
                         oldToNew[x].endPosWithKOVerlap = u - K + 1;
-                    }
 
                 } else {
-
                     newToOld[oldToNew[p_dfs[x]].serial].push_back(x);
                     oldToNew[x].serial = oldToNew[p_dfs[x]].serial;
                     oldToNew[x].finalWalkId = oldToNew[x].serial;
 
-
-                    if(ALGOMODE==TWOWAYEXT || ALGOMODE==BRACKETCOMP ){
+                    if (ALGOMODE == TWOWAYEXT || ALGOMODE == BRACKETCOMP)
                         disSet.Union(x, p_dfs[x]);
-                    }
-
 
                     oldToNew[x].startPosWithKOverlap = oldToNew[p_dfs[x]].endPosWithKOVerlap + 1;
                     oldToNew[x].pos_in_walk = oldToNew[p_dfs[x]].pos_in_walk + 1;
                     if (u < K) {
-                        oldToNew[x].endPosWithKOVerlap = oldToNew[x].startPosWithKOverlap + 1; // do we actually see this? yes
-                        if(DBGFLAG == UKDEBUG){
-                            cout<< "node: "<< x<<"u< k ***** u = "<<u<<endl;
-                        }
-                    } else {
+                        oldToNew[x].endPosWithKOVerlap =
+                                oldToNew[x].startPosWithKOverlap + 1; // do we actually see this? yes
+                        if (DBGFLAG == UKDEBUG)
+                            cout << "node: " << x << "u< k ***** u = " << u << endl;
+                    } else
                         oldToNew[x].endPosWithKOVerlap = u - K + (oldToNew[x].startPosWithKOverlap); //check correctness
-                    }
                 }
 
+                // NOTE: extending walk here!
                 // x->y is the edge, x is the parent we are extending
                 for (edge_t yEdge : adjx) { //edge_t yEdge = adjx.at(i);
                     int y = yEdge.toNode;
@@ -708,12 +731,10 @@ public:
                         }
                     }
 
-
                     //Normal DFS
                     if (color[y] == 'w') {
                         s.push(yEdge);
                     }
-
 
                     //handle self-loop, self-loop will always be an extra edge
                     // redundant, because we remove self-loop anyway
@@ -753,7 +774,6 @@ public:
                                 nodeSign[y] = yEdge.right;
                                 p_dfs[y] = x;
                                 saturated[x] = true; //found a child
-
                             } else {
                                 // do we reach this case?
                                 edge_both_t e;
@@ -762,7 +782,6 @@ public:
                             }
 
                         } else {
-
                             //merger
                             if(ALGOMODE == TWOWAYEXT || ALGOMODE == BRACKETCOMP){
                                 // y is not white
@@ -801,12 +820,44 @@ public:
         }
     }
 
+    static bool comp_smaller_unitig_first(int u, int v){
+        return unitigs.at(u).ln < unitigs.at(v).ln;
+    }
+
+    static bool comp_larger_unitig_first(int u, int v){
+        return unitigs.at(u).ln > unitigs.at(v).ln;
+    }
+
+    static bool comp_more_connected_first(int u, int v){
+        return adjList.at(u).size() > adjList.at(v).size();
+    }
+
+    static bool comp_less_connected_first(int u, int v){
+        return adjList.at(u).size() < adjList.at(v).size();
+    }
+
+    static bool comp_bigger_neighbour_first(edge_t e1, edge_t e2){
+        return unitigs.at(e1.toNode).ln > unitigs.at(e2.toNode).ln;
+    }
+
+    static bool comp_smaller_neighbour_first(edge_t e1, edge_t e2){
+        return unitigs.at(e1.toNode).ln < unitigs.at(e2.toNode).ln;
+    }
+
+    static bool comp_choose_less_connected_first(edge_t e1, edge_t e2){
+        return adjList.at(e1.toNode).size() < adjList.at(e2.toNode).size();
+    }
+
+    static bool comp_choose_more_connected_first(edge_t e1, edge_t e2){
+        return adjList.at(e1.toNode).size() > adjList.at(e2.toNode).size();
+    }
+
     void DFS() {
         if(ALGOMODE == NODEASSIGN){
             for (int i=0; i<V; i++) {
                 nodeSign[i] = true;
                 if(global_plusindegree[i]< global_indegree[i] - global_plusindegree[i]){
-                    nodeSign[i] = true;
+                    nodeSign[i] = false;
                 }
             }
         }
@@ -860,7 +911,6 @@ public:
             }
         }
 
-
         if(ALGOMODE == RANDOM_DFS){
             for (int i = 0; i < V; i++) {
                 sortStruct[i].node = i;
@@ -873,7 +923,6 @@ public:
 
         }
 
-
         if (ALGOMODE == OUTDEGREE_DFS || ALGOMODE == OUTDEGREE_DFS_1){
             for (int i = 0; i < V; i++) {
                 sortStruct[i].node = i;
@@ -884,6 +933,81 @@ public:
             copy(myvector.begin(), myvector.end(), sortStruct);
         }
 
+        /*
+         * My ordering here
+         * I will use a simplified data structure for node ordering: a simple array in place of sortStruct
+         */
+
+        int * special_order = (int *) calloc(V, sizeof(int));
+        for(int i = 0; i < V; i++)
+            special_order[i] = i; // every node accessed sequentially
+
+        switch(FLG_HEURISTIC){
+            case DEFAULT: // 0
+                break;
+            case SEED_RANDOM_UNITIGS: // 1
+                cout << "*** Shuffling unitigs" << endl;
+                shuffle(special_order, special_order + V,
+                        default_random_engine(chrono::system_clock::now().time_since_epoch().count()));
+                break;
+            case SEED_SMALLER_UNITIGS: // 2
+                cout << "*** Sorting smaller unitig first" << endl;
+                sort(special_order, special_order + V, comp_smaller_unitig_first);
+                break;
+            case SEED_BIGGER_UNITIGS: // 3
+                cout << "*** Sorting larger unitig first" << endl;
+                sort(special_order, special_order + V, comp_larger_unitig_first);
+                break;
+            case SEED_MORE_CONNECTED: // 4
+                cout << "*** Sorting more connected first" << endl;
+                sort(special_order, special_order + V, comp_more_connected_first);
+                break;
+            case SEED_LESS_CONNECTED: // 5
+                cout << "*** Sorting less connected first" << endl;
+                sort(special_order, special_order + V, comp_less_connected_first);
+                break;
+            case SEED_LESS_CONNECTED_BIGGER_UNITIG: // 6
+                cout << "*** Sorting larger unitigs & less connected first" << endl;
+                sort(special_order, special_order + V, comp_larger_unitig_first);
+                stable_sort(special_order, special_order + V, comp_less_connected_first);
+                break;
+            case EXPLORE_BIGGER_NEIGHBOUR: // 7
+                cout << "*** Sorting bigger neighbour first" << endl;
+                for(auto & i : adjList){
+                    sort(i.begin(), i.end(), comp_bigger_neighbour_first);
+                }
+                break;
+            case EXPLORE_SMALLER_NEIGHBOUR: // 8
+                cout << "*** Sorting smaller neighbour first" << endl;
+                for(auto & l: adjList){
+                    sort(l.begin(), l.end(), comp_smaller_neighbour_first);
+                }
+                break;
+            case SEED_LESS_CONNECTED_BIGGER_UNITIG_EXPLORE_SMALLER_NEIGHBOUR: // 9
+                cout << "*** Sorting larger unitigs & less connected & smaller neighbour first" << endl;
+                sort(special_order, special_order + V, comp_larger_unitig_first);
+                stable_sort(special_order, special_order + V, comp_less_connected_first);
+
+                for(auto & l: adjList){
+                    sort(l.begin(), l.end(), comp_smaller_neighbour_first);
+                }
+                break;
+            case EXPLORE_LESS_CONNECTED:
+                cout << "*** Sorting less connected unitig first" << endl;
+                for(auto & l : adjList)
+                    sort(l.begin(), l.end(), comp_choose_less_connected_first);
+                break;
+            case EXPLORE_MORE_CONNECTED:
+                cout << "*** Sorting less connected unitig first" << endl;
+                for(auto & l : adjList)
+                    sort(l.begin(), l.end(), comp_choose_more_connected_first);
+                break;
+            default:
+                cerr << "UNKNOWN HEURISTIC" << endl;
+                exit(EXIT_FAILURE);
+        }
+
+
         double time_a = readTimer();
         for (int i = 0; i < V; i++) {
             color[i] = 'w';
@@ -891,42 +1015,36 @@ public:
         }
         cout<<"Basic V loop time: "<<readTimer() - time_a<<" sec"<<endl;
 
-
         time_a = readTimer();
         for (int j = 0; j < V; j++) {
-            int i;
-            if(ALGOMODE == OUTDEGREE_DFS || ALGOMODE == OUTDEGREE_DFS_1 || ALGOMODE == INDEGREE_DFS || ALGOMODE == INDEGREE_DFS_1 || ALGOMODE == SOURCEFIRST){
+            int i; // NOTE: unitig seed here!
+            if (ALGOMODE == OUTDEGREE_DFS || ALGOMODE == OUTDEGREE_DFS_1 || ALGOMODE == INDEGREE_DFS ||
+                ALGOMODE == INDEGREE_DFS_1 || ALGOMODE == SOURCEFIRST)
                 i = sortStruct[j].node;
-            }else{
-                i = j;
-            }
+            else
+                i = special_order[j];
 
+            if (color[i] == 'w') { // if the node is not used
+                if (DBGFLAG == DFSDEBUGG)
+                    cout << "visit start of node: " << i << endl;
 
-
-            if (color[i] == 'w') {
-                if(DBGFLAG == DFSDEBUGG ){
-                    cout<<"visit start of node: "<<i<<endl;
-                }
                 DFS_visit(i);
             }
         }
         cout<<"DFS time: "<<readTimer() - time_a<<" sec"<<endl;
-
+        free(special_order);
 
         /***MERGE START***/
         bool* merged = new bool[countNewNode];
-        for (int i = 0; i<countNewNode; i++) {
+        for (int i = 0; i < countNewNode; i++)
             merged[i] = false;
-        }
 
         if(ALGOMODE == TWOWAYEXT || ALGOMODE == BRACKETCOMP){
             ofstream uidSequenceFile;
             uidSequenceFile.open("uidSeq"+modefilename[ALGOMODE]+".txt");
 
-            for ( const auto& p: gmerge.fwdWalkId)
-            {
+            for ( const auto& p: gmerge.fwdWalkId) {
                 if(!gmerge.fwdVisited[p.first]){
-
                     int fromnode =p.first;
                     int tonode = p.second;
                     deque<int> lst;
@@ -936,7 +1054,6 @@ public:
 
                     gmerge.fwdVisited[fromnode] = true;
                     gmerge.bwdVisited[tonode] = true;
-
 
                     if(gmerge.fwdVisited.count(tonode)>0){
                         while(!gmerge.fwdVisited[tonode]){
@@ -973,7 +1090,6 @@ public:
                         // i is new walk id before merging
                         merged[i] = true;
 
-
                         walkFirstNode[i] = headOfThisWalk;
 
                         // travesing the walk list of walk ID i
@@ -986,12 +1102,9 @@ public:
                     oldToNew[newToOld[lst.back()].back()].isWalkEnd = true;
 
                     V_twoway_ustitch ++;
-
                 }
             }
             for (int newNodeNum = 0; newNodeNum<countNewNode; newNodeNum++){
-
-
                 if(merged[newNodeNum] == false){
                     oldToNew[newToOld[newNodeNum].back()].isWalkEnd = true;
 
@@ -1000,7 +1113,7 @@ public:
             }
         }
 
-
+        // NOTE: to FASTA here!
 
         //sorter of all walks and printing them
         vector<fourtuple> sorter;
@@ -1014,7 +1127,7 @@ public:
 
         ofstream uidSequence;
         string uidSeqFilename = "uidSeq.usttemp"; //"uidSeq"+ mapmode[ALGOMODE] +".txt"
-       uidSequence.open(uidSeqFilename);
+        uidSequence.open(uidSeqFilename);
 
         int finalUnitigSerial = 0;
         for(fourtuple n : sorter){
@@ -1028,7 +1141,6 @@ public:
             finalUnitigSerial++;
         }
         uidSequence.close();
-
 
         //system();
 
@@ -1046,7 +1158,6 @@ public:
         }
         system("cat  merged.usttemp  | cut -d' ' -f3 >  seq.usttemp");
 
-
         ifstream sequenceStringFile ("seq.usttemp");
         ofstream ustOutputFile (OUTPUT_FILENAME);
         //ofstream smallKFile("smallK.fa");
@@ -1055,7 +1166,6 @@ public:
         //keep string only and output
         //open the string file
         if(100==100){
-
             int lastWalk = -1;
             string walkString = "";
             string unitigString = "";
@@ -1067,7 +1177,7 @@ public:
                 //for each line in file
                 string sequenceFromFile = "";//getline
                 getline (sequenceStringFile,sequenceFromFile);
-                if(nodeSign[uid] == false){
+                if(!nodeSign[uid]){
                     unitigString =  reverseComplement(sequenceFromFile);
                 }else{
                     unitigString =  sequenceFromFile;
@@ -1078,10 +1188,10 @@ public:
                         //print previous walk
                         //ustOutputFile<<">"<<lastWalk << " " << uid<<" " <<finalWalkId<<" "<<pos_in_walk<<" "<<endl;
                         if(walkString.length()>=K){
-                            ustOutputFile<<">"<<endl;
+                            ustOutputFile<<">"<<"\n";
                             C_twoway_ustitch+=walkString.length();
 
-                            ustOutputFile<< walkString<<endl;
+                            ustOutputFile<< walkString<<"\n";
                         }else{
 //                            smallKFile<<">\n"<< walkString+"A" <<endl;
 //                            smallKFile<<">\n"<< walkString+"C" <<endl;
@@ -1227,7 +1337,7 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
     do {
         unitig_struct_t unitig_struct;
 
-        if(FLG_ABUNDANCE){
+        if(FLG_ABUNDANCE){ // with count
             //>3 LN:i:24 ab:Z:10 10 10 10 10 7 7 7 7 7 3 3 3 3   L:-:0:+ L:-:1:+  L:+:0:-
             edgesline[0] = '\0';
             sscanf(line.c_str(), "%*c %d %s", &unitig_struct.serial, lnline);
@@ -1247,6 +1357,7 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
             if(Lpos < 0){
                 Lpos = line.length() ;
             }
+
             // initialize string stream
             //cout<<line.substr(abpos, Lpos - abpos);
             stringstream ss(line.substr(abpos, Lpos - abpos));
@@ -1285,9 +1396,8 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
 
         }
 
-
-
-        char c1, c2;
+        // parsing edgesline
+        char c1, c2; // +/-
         stringstream ss(edgesline);
 
         vector<edge_t> edges;
@@ -1318,22 +1428,21 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
             }
 
         }
+        // add row to adjList
         adjList.push_back(edges);
 
-
-
+        // check if there are other unitigs
         doCont = false;
         while (getline(unitigFile, line)) {
             if (line.substr(0, 1).compare(">")) {
                 //unitig_struct.sequence = unitig_struct.sequence + line;
                 unitigs.push_back(unitig_struct);
-            } else {
+            } else { // it is a ">"
                 doCont = true;
                 break;
             }
         }
     } while (doCont);
-
 
     unitigFile.close();
 
@@ -1348,31 +1457,43 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
 }
 
 int main(int argc, char** argv) {
-
-
     #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
     #else
         cout<<"UST does not support this OS."<<endl;
         exit(2);
     #endif
 
-
-
     //    string debugFileName = "debug.txt";
     //    ofstream debugFile;
     //    debugFile.open(debugFileName);
-
 
     const char* nvalue = "" ;
 
     int c ;
 
-    ///*
     if(!DEBUGMODE){
-        while( ( c = getopt (argc, argv, "i:k:a:") ) != -1 )
+        while( ( c = getopt (argc, argv, "i:k:a:h:") ) != -1 )
         {
             switch(c)
             {
+                case 'h':
+                    if(optarg) {
+                        bool done = false;
+                        for(const heuristic_name_t& h: heuristic_dic)
+                            if(h.name == optarg) {
+                                FLG_HEURISTIC = h.heur;
+                                done = true;
+                            }
+                        if(!done){
+                            cerr << "Need a valid heuristic!" << endl;
+                            exit(EXIT_FAILURE);
+                        }
+                    }else{
+                        cerr << "Need an heuristic after -h!" << endl;
+                        exit(EXIT_FAILURE);
+                    }
+
+                    break;
                 case 'a':
                     if(optarg) {
 						if(strcmp(optarg, "0")==0 || strcmp(optarg, "1")==0){
@@ -1381,9 +1502,7 @@ int main(int argc, char** argv) {
 							fprintf(stderr, "Error: use either -a 0 or -a 1 \n");
                             exit(EXIT_FAILURE);
 						}
-
                     }
-
                     break;
                 case 'i':
                     if(optarg) nvalue = optarg;
@@ -1429,12 +1548,8 @@ int main(int argc, char** argv) {
                     argv[0]);
             exit(EXIT_FAILURE);
         }
-
-
-
         UNITIG_FILE = string(nvalue);
     }
-    //*/
 
     ifstream infile(UNITIG_FILE);
     if(!infile.good()){
@@ -1455,7 +1570,6 @@ int main(int argc, char** argv) {
     infile.close();
     double TIME_READ_SEC = readTimer() - startTime;
     cout<<"Done. TIME to read file "<<TIME_READ_SEC<<" sec."<<endl;
-
 
     Graph G;
 
@@ -1571,7 +1685,6 @@ int main(int argc, char** argv) {
     cout<<"## Please wait while DFS step is going on... "<<endl;
     G.DFS();
 
-
     if(DBGFLAG == PRINTER){
         printBCALMGraph(adjList);
         printNewGraph(G);
@@ -1584,7 +1697,6 @@ int main(int argc, char** argv) {
         }
     }
 
-
     double TIME_TOTAL_SEC = readTimer() - startTime;
 
     // For collecting stats
@@ -1592,24 +1704,23 @@ int main(int argc, char** argv) {
 
     time_a = readTimer();
 
-
     if(ALGOMODE==BRACKETCOMP){
         C_ustitch = C_tip_ustitch;
         V_ustitch  = V_tip_ustitch;
-    }else if(ALGOMODE == TWOWAYEXT){
-        V_ustitch = V_twoway_ustitch;
-        C_ustitch = C_twoway_ustitch;
-    }else if(ALGOMODE == BASIC){
-        formattedOutputForwardExt(G);
-        V_ustitch = G.countNewNode;
-    }else{
-        formattedOutputForwardExt(G);
-        V_ustitch = G.countNewNode;
-    }
-
+    }else
+        if(ALGOMODE == TWOWAYEXT){
+            V_ustitch = V_twoway_ustitch;
+            C_ustitch = C_twoway_ustitch;
+        }else
+            if(ALGOMODE == BASIC){
+                formattedOutputForwardExt(G);
+                V_ustitch = G.countNewNode;
+            }else{
+                formattedOutputForwardExt(G);
+                V_ustitch = G.countNewNode;
+            }
 
     cout<<"Done. TIME to output: "<<readTimer() - time_a<<" sec."<<endl;
-
 
     float percent_saved_c = (1-(C_ustitch*1.0/C_bcalm))*100.0;
     float ustitchBitsPerKmer;
@@ -1618,7 +1729,6 @@ int main(int argc, char** argv) {
     }else{
         ustitchBitsPerKmer =C_ustitch*2.0/numKmers;
     }
-
 
 //    printf("%s\t",  mapmode[ALGOMODE].c_str());
 //    printf("%d\t\
@@ -1651,14 +1761,13 @@ int main(int argc, char** argv) {
 
     globalStatFile.close();
 
-     cout << "------------ UST completed successfully. Output is in file "<<OUTPUT_FILENAME << " ------------"<<endl;
+    cout << "------------ UST completed successfully. Output is in file "<<OUTPUT_FILENAME << " ------------"<<endl;
     cout << "Total number of unique "<<K<<"-mers " <<  "= " << numKmers << endl;
-     cout << "Lower bound on any SPSS representation " <<  "= " << (charLowerbound)*1.0/numKmers << " neucleotide/k-mer"<< endl;
+    cout << "Lower bound on any SPSS representation " <<  "= " << (charLowerbound)*1.0/numKmers << " neucleotide/k-mer"<< endl;
     cout << "Size of UST output" <<  "= " <<ustitchBitsPerKmer/2.0 << " neucleotide/k-mer"<< endl;
-     //cout << "Gap with lower bound" << "= " << upperbound - percent_saved_c << "%" << endl;
+    //cout << "Gap with lower bound" << "= " << upperbound - percent_saved_c << "%" << endl;
 
     cout << "------------------------------------------------------"<<endl;
-
 
     return EXIT_SUCCESS;
 }

@@ -103,6 +103,7 @@ typedef struct {
 typedef struct {
     int serial; // bcalm id
     int ln; // length
+    vector<int> ab;
 } unitig_struct_t;
 
 typedef struct {
@@ -1360,8 +1361,12 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
 
             // initialize string stream
             //cout<<line.substr(abpos, Lpos - abpos);
+
+            // parsing counts
             stringstream ss(line.substr(abpos, Lpos - abpos));
-            string abun;
+            string ab;
+            while(ss >> ab)
+                unitig_struct.ab.push_back(stoi(ab));
 
            sscanf(line.substr(Lpos, line.length() - Lpos).c_str(), "%[^\n]s", edgesline);
 

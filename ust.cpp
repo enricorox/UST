@@ -5,6 +5,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <utility>
 #include <vector>
 #include <assert.h>
 #include <stdint.h>
@@ -53,7 +54,9 @@ string modefilename[] = {"Fwd", "indegree_dfs", "indegree_dfs_initial_sort_only"
 enum heuristic{
     DEFAULT, SEED_RANDOM_UNITIGS, SEED_SMALLER_UNITIGS, SEED_BIGGER_UNITIGS, SEED_MORE_CONNECTED, SEED_LESS_CONNECTED, SEED_LESS_CONNECTED_BIGGER_UNITIG,
     EXPLORE_BIGGER_NEIGHBOUR, EXPLORE_SMALLER_NEIGHBOUR, SEED_LESS_CONNECTED_BIGGER_UNITIG_EXPLORE_SMALLER_NEIGHBOUR,
-    EXPLORE_LESS_CONNECTED, EXPLORE_MORE_CONNECTED
+    EXPLORE_LESS_CONNECTED, EXPLORE_MORE_CONNECTED,
+    EXPLORE_SIMILAR_ABUNDANCE, EXPLORE_SIMILAR_ABUNDANCE_ORIENTED, SEED_LOWER_AVERAGE_ABUNDANCE, SEED_HIGHER_AVERAGE_ABUNDANCE,
+    EXPLORE_SIMILAR_AVERAGE_ABUNDANCE, EXPLORE_SIMILAR_MEDIAN_ABUNDANCE, SEED_LOWER_MEDIAN_ABUNDANCE, SEED_HIGHER_MEDIAN_ABUNDANCE
 };
 
 struct heuristic_name_t{
@@ -62,21 +65,32 @@ struct heuristic_name_t{
 };
 
 vector<heuristic_name_t> heuristic_dic = {
-        {DEFAULT,"d"},
+        {DEFAULT,                            "d"},
         // seed
-        {SEED_RANDOM_UNITIGS,"ru"}, {SEED_SMALLER_UNITIGS, "suf"}, {SEED_BIGGER_UNITIGS, "buf"},
-        {SEED_MORE_CONNECTED,"mcf"}, {SEED_LESS_CONNECTED, "lcf"},
+        {SEED_RANDOM_UNITIGS,                "sru"},
+        {SEED_SMALLER_UNITIGS,               "ssu"},
+        {SEED_BIGGER_UNITIGS,                "sbu"},
+        {SEED_MORE_CONNECTED,                "smc"},
+        {SEED_LESS_CONNECTED,                "slc"},
+        {SEED_LOWER_AVERAGE_ABUNDANCE,       "slaa"},
+        {SEED_LOWER_MEDIAN_ABUNDANCE,        "slma"},
+        {SEED_HIGHER_AVERAGE_ABUNDANCE,      "shaa"},
+        {SEED_HIGHER_MEDIAN_ABUNDANCE,       "shma"},
         // explore
-        {EXPLORE_LESS_CONNECTED,"clc"}, {EXPLORE_MORE_CONNECTED, "cmc"},
-        {EXPLORE_BIGGER_NEIGHBOUR,"bnf"}, {EXPLORE_SMALLER_NEIGHBOUR, "snf"},
+        {EXPLORE_LESS_CONNECTED,             "elc"},
+        {EXPLORE_MORE_CONNECTED,             "emc"},
+        {EXPLORE_BIGGER_NEIGHBOUR,           "ebn"},
+        {EXPLORE_SMALLER_NEIGHBOUR,          "esn"},
+        {EXPLORE_SIMILAR_ABUNDANCE,          "esa"},
+        {EXPLORE_SIMILAR_ABUNDANCE_ORIENTED, "esao"},
+        {EXPLORE_SIMILAR_AVERAGE_ABUNDANCE,  "esaa"},
+        {EXPLORE_SIMILAR_MEDIAN_ABUNDANCE,   "esma"},
         // combo
-        {SEED_LESS_CONNECTED_BIGGER_UNITIG,"lcbu"},
-        {SEED_LESS_CONNECTED_BIGGER_UNITIG_EXPLORE_SMALLER_NEIGHBOUR, "lcbusn"}
-
+        //{SEED_LESS_CONNECTED_BIGGER_UNITIG, "lcbu"},
+        //{SEED_LESS_CONNECTED_BIGGER_UNITIG_EXPLORE_SMALLER_NEIGHBOUR, "lcbusn"}
 };
 
-vector<string> heuristic_names = {"d", "ru", "suf", "buf", "mcf", "lcf", "lcbu", "bnf", "snf", "lcbusn", "clc", "cmc"};
-heuristic FLG_HEURISTIC = DEFAULT;
+vector<heuristic> FLG_HEURISTIC;
 
 typedef tuple<int,int,int, int> fourtuple; // uid, walkid, pos, isTip
 
@@ -104,6 +118,7 @@ typedef struct {
     int serial; // bcalm id
     int ln; // length
     vector<int> ab;
+    double mean_ab;
 } unitig_struct_t;
 
 typedef struct {
@@ -166,6 +181,10 @@ set<int> newNewMarker;
 vector<list<int> > newToOld;
 vector<int> walkFirstNode; //given a walk id, what's the first node of that walk
 unordered_map<int, vector<edge_t> > sinkSrcEdges; //int is the unitig id (old id)
+
+inline int d(int a, int b){
+    return abs(a-b);
+}
 
 /**
  * Get file name from its path
@@ -723,6 +742,22 @@ public:
 
                 // NOTE: extending walk here!
                 // x->y is the edge, x is the parent we are extending
+                for(auto heur : FLG_HEURISTIC)
+                    switch(heur){
+                    case EXPLORE_SIMILAR_ABUNDANCE:
+                        stable_sort(adjx.begin(), adjx.end(), comp_choose_similar_ab(unitigs[x].ab.at(0)));
+                        break;
+                    case EXPLORE_SIMILAR_ABUNDANCE_ORIENTED:
+                        stable_sort(adjx.begin(), adjx.end(), comp_choose_similar_ab_oriented(unitigs[x]));
+                        break;
+                    case EXPLORE_SIMILAR_AVERAGE_ABUNDANCE:
+                        stable_sort(adjx.begin(), adjx.end(), comp_choose_similar_average_ab(unitigs[x].mean_ab));
+                        break;
+                    case EXPLORE_SIMILAR_MEDIAN_ABUNDANCE:
+                        stable_sort(adjx.begin(), adjx.end(), comp_choose_similar_median_ab(unitigs[x]));
+                        break;
+                }
+
                 for (edge_t yEdge : adjx) { //edge_t yEdge = adjx.at(i);
                     int y = yEdge.toNode;
 
@@ -821,37 +856,136 @@ public:
         }
     }
 
-    static bool comp_smaller_unitig_first(int u, int v){
+    static bool comp_seed_smaller_unitig(int u, int v){
         return unitigs.at(u).ln < unitigs.at(v).ln;
     }
 
-    static bool comp_larger_unitig_first(int u, int v){
+    static bool comp_seed_larger_unitig(int u, int v){
         return unitigs.at(u).ln > unitigs.at(v).ln;
     }
 
-    static bool comp_more_connected_first(int u, int v){
+    static bool comp_seed_more_connected(int u, int v){
         return adjList.at(u).size() > adjList.at(v).size();
     }
 
-    static bool comp_less_connected_first(int u, int v){
+    static bool comp_seed_less_connected(int u, int v){
         return adjList.at(u).size() < adjList.at(v).size();
     }
 
-    static bool comp_bigger_neighbour_first(edge_t e1, edge_t e2){
+    static bool comp_explore_bigger_neighbour(edge_t e1, edge_t e2){
         return unitigs.at(e1.toNode).ln > unitigs.at(e2.toNode).ln;
     }
 
-    static bool comp_smaller_neighbour_first(edge_t e1, edge_t e2){
+    static bool comp_explore_smaller_neighbour(edge_t e1, edge_t e2){
         return unitigs.at(e1.toNode).ln < unitigs.at(e2.toNode).ln;
     }
 
-    static bool comp_choose_less_connected_first(edge_t e1, edge_t e2){
+    static bool comp_explore_less_connected(edge_t e1, edge_t e2){
         return adjList.at(e1.toNode).size() < adjList.at(e2.toNode).size();
     }
 
-    static bool comp_choose_more_connected_first(edge_t e1, edge_t e2){
+    static bool comp_explore_more_connected(edge_t e1, edge_t e2){
         return adjList.at(e1.toNode).size() > adjList.at(e2.toNode).size();
     }
+
+    static bool comp_seed_average_lower_abundance(int u, int v){
+    //    return unitigs.at(u).ab.at(0) < unitigs.at(v).ab.at(0);
+        return unitigs.at(u).mean_ab < unitigs.at(v).mean_ab;
+    }
+
+    static bool comp_seed_lower_median_abundance(int u, int v){
+        //    return unitigs.at(u).ab.at(0) < unitigs.at(v).ab.at(0);
+        return median(unitigs.at(u).ab) < median(unitigs.at(v).ab);
+    }
+
+    static bool comp_seed_average_higher_abundance(int u, int v){
+        //return unitigs.at(u).ab.at(0) > unitigs.at(v).ab.at(0);
+        return unitigs.at(u).mean_ab > unitigs.at(v).mean_ab;
+    }
+
+    static bool comp_seed_higher_median_abundance(int u, int v){
+        //    return unitigs.at(u).ab.at(0) < unitigs.at(v).ab.at(0);
+        return median(unitigs.at(u).ab) > median(unitigs.at(v).ab);
+    }
+
+    class comp_choose_similar_ab{
+    private:
+        int ab;
+    public:
+        explicit comp_choose_similar_ab(int n) : ab(n) {  }
+
+        bool operator () (edge_t e1, edge_t e2) const {
+            return d(ab, unitigs[e1.toNode].ab.at(0)) < d(ab, unitigs[e2.toNode].ab.at(0));
+        }
+    };
+
+    class comp_choose_similar_ab_oriented{
+    private:
+        unitig_struct_t u;
+    public:
+        explicit comp_choose_similar_ab_oriented(unitig_struct_t unitig) : u(std::move(unitig)) {  }
+
+        bool operator () (edge_t e1, edge_t e2) const {
+            int d1,d2;
+            int s = u.ab.size();
+            int s1 = unitigs[e1.toNode].ab.size();
+            int s2 = unitigs[e2.toNode].ab.size();
+
+            // + -> +
+            if(e1.left && e1.right)
+                d1 = d(u.ab.at(s - 1), unitigs[e1.toNode].ab.at(0));
+            if(e2.left && e2.right)
+                d2 = d(u.ab.at(s - 1), unitigs[e2.toNode].ab.at(0));
+
+            // + -> -
+            if(e1.left && !e1.right)
+                d1 = d(u.ab.at(s - 1), unitigs[e1.toNode].ab.at(s1 - 1));
+            if(e2.left && !e2.right)
+                d2 = d(u.ab.at(s - 1), unitigs[e2.toNode].ab.at(s2 - 1));
+
+            // - -> +
+            if(!e1.left && e1.right)
+                d1 = d(u.ab.at(0), unitigs[e1.toNode].ab.at(0));
+            if(!e2.left && e2.right)
+                d2 = d(u.ab.at(0), unitigs[e2.toNode].ab.at(0));
+
+            // - -> -
+            if(!e1.left && !e1.right)
+                d1 = d(u.ab.at(0), unitigs[e1.toNode].ab.at(s1 - 1));
+            if(!e2.left && !e2.right)
+                d2 = d(u.ab.at(0), unitigs[e2.toNode].ab.at(s2 - 1));
+
+            return d1 < d2;
+        }
+    };
+
+    class comp_choose_similar_average_ab{
+    private:
+        double ab;
+    public:
+        explicit comp_choose_similar_average_ab(double n) : ab(n) {  }
+
+        bool operator () (edge_t e1, edge_t e2) const {
+            return d(ab, unitigs[e1.toNode].mean_ab) < d(ab, unitigs[e2.toNode].mean_ab);
+        }
+    };
+
+    int static median(vector<int> v){
+        size_t n = v.size() / 2;
+        nth_element(v.begin(), v.begin()+n, v.end());
+        return v[n];
+    }
+
+    class comp_choose_similar_median_ab{
+    private:
+        unitig_struct_t u;
+    public:
+        explicit comp_choose_similar_median_ab(unitig_struct_t n) : u(n) {  }
+
+        bool operator () (edge_t e1, edge_t e2) const {
+            return d(median(u.ab), median(unitigs[e1.toNode].ab)) < d(median(u.ab), median(unitigs[e2.toNode].ab));
+        }
+    };
 
     void DFS() {
         if(ALGOMODE == NODEASSIGN){
@@ -941,73 +1075,70 @@ public:
 
         int * special_order = (int *) calloc(V, sizeof(int));
         for(int i = 0; i < V; i++)
-            special_order[i] = i; // every node accessed sequentially
+            special_order[i] = i; // every node accessed in default order
 
-        switch(FLG_HEURISTIC){
-            case DEFAULT: // 0
-                break;
-            case SEED_RANDOM_UNITIGS: // 1
-                cout << "*** Shuffling unitigs" << endl;
-                shuffle(special_order, special_order + V,
-                        default_random_engine(chrono::system_clock::now().time_since_epoch().count()));
-                break;
-            case SEED_SMALLER_UNITIGS: // 2
-                cout << "*** Sorting smaller unitig first" << endl;
-                sort(special_order, special_order + V, comp_smaller_unitig_first);
-                break;
-            case SEED_BIGGER_UNITIGS: // 3
-                cout << "*** Sorting larger unitig first" << endl;
-                sort(special_order, special_order + V, comp_larger_unitig_first);
-                break;
-            case SEED_MORE_CONNECTED: // 4
-                cout << "*** Sorting more connected first" << endl;
-                sort(special_order, special_order + V, comp_more_connected_first);
-                break;
-            case SEED_LESS_CONNECTED: // 5
-                cout << "*** Sorting less connected first" << endl;
-                sort(special_order, special_order + V, comp_less_connected_first);
-                break;
-            case SEED_LESS_CONNECTED_BIGGER_UNITIG: // 6
-                cout << "*** Sorting larger unitigs & less connected first" << endl;
-                sort(special_order, special_order + V, comp_larger_unitig_first);
-                stable_sort(special_order, special_order + V, comp_less_connected_first);
-                break;
-            case EXPLORE_BIGGER_NEIGHBOUR: // 7
-                cout << "*** Sorting bigger neighbour first" << endl;
-                for(auto & i : adjList){
-                    sort(i.begin(), i.end(), comp_bigger_neighbour_first);
-                }
-                break;
-            case EXPLORE_SMALLER_NEIGHBOUR: // 8
-                cout << "*** Sorting smaller neighbour first" << endl;
-                for(auto & l: adjList){
-                    sort(l.begin(), l.end(), comp_smaller_neighbour_first);
-                }
-                break;
-            case SEED_LESS_CONNECTED_BIGGER_UNITIG_EXPLORE_SMALLER_NEIGHBOUR: // 9
-                cout << "*** Sorting larger unitigs & less connected & smaller neighbour first" << endl;
-                sort(special_order, special_order + V, comp_larger_unitig_first);
-                stable_sort(special_order, special_order + V, comp_less_connected_first);
-
-                for(auto & l: adjList){
-                    sort(l.begin(), l.end(), comp_smaller_neighbour_first);
-                }
-                break;
-            case EXPLORE_LESS_CONNECTED:
-                cout << "*** Sorting less connected unitig first" << endl;
-                for(auto & l : adjList)
-                    sort(l.begin(), l.end(), comp_choose_less_connected_first);
-                break;
-            case EXPLORE_MORE_CONNECTED:
-                cout << "*** Sorting less connected unitig first" << endl;
-                for(auto & l : adjList)
-                    sort(l.begin(), l.end(), comp_choose_more_connected_first);
-                break;
-            default:
-                cerr << "UNKNOWN HEURISTIC" << endl;
-                exit(EXIT_FAILURE);
-        }
-
+        for(auto heur : FLG_HEURISTIC)
+            switch(heur){
+                case DEFAULT: // 0
+                    break;
+                case SEED_RANDOM_UNITIGS: // 1
+                    cout << "Shuffling unitigs" << endl;
+                    shuffle(special_order, special_order + V,
+                            default_random_engine(chrono::system_clock::now().time_since_epoch().count()));
+                    break;
+                case SEED_SMALLER_UNITIGS: // 2
+                    cout << "*** Sorting smaller unitig first" << endl;
+                    stable_sort(special_order, special_order + V, comp_seed_smaller_unitig);
+                    break;
+                case SEED_BIGGER_UNITIGS: // 3
+                    cout << "*** Sorting larger unitig first" << endl;
+                    stable_sort(special_order, special_order + V, comp_seed_larger_unitig);
+                    break;
+                case SEED_MORE_CONNECTED: // 4
+                    cout << "*** Sorting more connected first" << endl;
+                    stable_sort(special_order, special_order + V, comp_seed_more_connected);
+                    break;
+                case SEED_LESS_CONNECTED: // 5
+                    cout << "*** Sorting less connected first" << endl;
+                    stable_sort(special_order, special_order + V, comp_seed_less_connected);
+                    break;
+                case EXPLORE_BIGGER_NEIGHBOUR: // 7
+                    cout << "*** Sorting bigger neighbour first" << endl;
+                    for(auto & l : adjList)
+                        stable_sort(l.begin(), l.end(), comp_explore_bigger_neighbour);
+                    break;
+                case EXPLORE_SMALLER_NEIGHBOUR: // 8
+                    cout << "*** Sorting smaller neighbour first" << endl;
+                    for(auto & l: adjList)
+                        stable_sort(l.begin(), l.end(), comp_explore_smaller_neighbour);
+                    break;
+                case EXPLORE_LESS_CONNECTED:
+                    cout << "*** Sorting less connected unitig first" << endl;
+                    for(auto & l : adjList)
+                        stable_sort(l.begin(), l.end(), comp_explore_less_connected);
+                    break;
+                case EXPLORE_MORE_CONNECTED:
+                    cout << "*** Sorting less connected unitig first" << endl;
+                    for(auto & l : adjList)
+                        stable_sort(l.begin(), l.end(), comp_explore_more_connected);
+                    break;
+                case SEED_LOWER_AVERAGE_ABUNDANCE:
+                    cout << "*** Sorting with low average abundance first" << endl;
+                    stable_sort(special_order, special_order + V, comp_seed_average_lower_abundance);
+                    break;
+                case SEED_HIGHER_AVERAGE_ABUNDANCE:
+                    cout << "*** Sorting with high average abundance first" << endl;
+                    stable_sort(special_order, special_order + V, comp_seed_average_higher_abundance);
+                    break;
+                case SEED_LOWER_MEDIAN_ABUNDANCE:
+                    cout << "*** Sorting with low median abundance first" << endl;
+                    stable_sort(special_order, special_order + V, comp_seed_lower_median_abundance);
+                    break;
+                case SEED_HIGHER_MEDIAN_ABUNDANCE:
+                    cout << "*** Sorting with high median abundance first" << endl;
+                    stable_sort(special_order, special_order + V, comp_seed_higher_median_abundance);
+                    break;
+            }
 
         double time_a = readTimer();
         for (int i = 0; i < V; i++) {
@@ -1365,8 +1496,14 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
             // parsing counts
             stringstream ss(line.substr(abpos, Lpos - abpos));
             string ab;
-            while(ss >> ab)
-                unitig_struct.ab.push_back(stoi(ab));
+            double mean_ab;
+            while(ss >> ab){
+                int a = stoi(ab);
+                unitig_struct.ab.push_back(a);
+                mean_ab += a;
+            }
+            unitig_struct.mean_ab = mean_ab / unitig_struct.ln;
+
 
            sscanf(line.substr(Lpos, line.length() - Lpos).c_str(), "%[^\n]s", edgesline);
 
@@ -1429,9 +1566,7 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
                     newEdge.toNode = nodeNum;
                     edges.push_back(newEdge);
                 }
-
             }
-
         }
         // add row to adjList
         adjList.push_back(edges);
@@ -1461,6 +1596,14 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
     return EXIT_SUCCESS;
 }
 
+void print_heur() {
+    cout << "(";
+    for(auto & heur : heuristic_dic){
+        cout << "\"" << heur.name << "\" ";
+    }
+    cout << ")" << endl;
+}
+
 int main(int argc, char** argv) {
     #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
     #else
@@ -1482,22 +1625,26 @@ int main(int argc, char** argv) {
             switch(c)
             {
                 case 'h':
-                    if(optarg) {
+                    optind--;
+                    for(; optind < argc; optind++) {
+                        if(argv[optind][0] == '-') break;
                         bool done = false;
-                        for(const heuristic_name_t& h: heuristic_dic)
-                            if(h.name == optarg) {
-                                FLG_HEURISTIC = h.heur;
+                        for (const heuristic_name_t &h: heuristic_dic)
+                            if (h.name == argv[optind]) {
                                 done = true;
+                                cout << "*** Heuristic selected: " << h.name << endl;
+                                FLG_HEURISTIC.push_back(h.heur);
                             }
                         if(!done){
-                            cerr << "Need a valid heuristic!" << endl;
-                            exit(EXIT_FAILURE);
+                            cout << "WARNING: unknown heuristic: " << argv[optind] << endl;
+                            // exit(EXIT_FAILURE);
                         }
-                    }else{
-                        cerr << "Need an heuristic after -h!" << endl;
+                    }
+                    if (FLG_HEURISTIC.empty()) {
+                        cerr << "Need a valid heuristic name!" << endl;
+                        print_heur();
                         exit(EXIT_FAILURE);
                     }
-
                     break;
                 case 'a':
                     if(optarg) {

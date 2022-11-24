@@ -1,0 +1,5 @@
+#!/bin/bash
+
+sequences=$(awk -F '-' '{print $1}' sequences.txt| grep -vE "#" sequences.txt)
+
+for s in $sequences; do

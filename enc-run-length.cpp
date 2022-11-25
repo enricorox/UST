@@ -42,8 +42,10 @@ void encode_in_pairs(const string encoded_file, const vector<int> &symbols, cons
         cerr << "Can't open output file!" << endl;
         exit(EXIT_FAILURE);
     }
-    for(int i = 0; i < symbols.size(); i++){
-        encoded << symbols[i] << ":" << runs[i] << "\n";
+
+    encoded << symbols[0] << ":" << runs[0];
+    for(int i = 1; i < symbols.size(); i++){
+        encoded << "\n" << symbols[i] << ":" << runs[i];
     }
     encoded.close();
 }
@@ -55,11 +57,15 @@ void encode_in_pairs_star(const string encoded_file, const vector<int> &symbols,
         cerr << "Can't open output file!" << endl;
         exit(EXIT_FAILURE);
     }
-    for(int i = 0; i < symbols.size(); i++){
-        encoded << symbols[i];
+
+    encoded << symbols[0];
+    if(runs[0] != 1)
+        encoded << ":" << runs[0];
+
+    for(int i = 1; i < symbols.size(); i++){
+        encoded << "\n" << symbols[i];
         if(runs[i] != 1)
             encoded << ":" << runs[i];
-        encoded << "\n";
     }
     encoded.close();
 }
@@ -97,32 +103,38 @@ void encode_vector(const string encoded_file, const vector<int> &symbols, const 
 }
 
 int main(int argc, char **argv){
-    if(argc < 1){
-        cout << "Need a file containing counts!" << endl;
+    if(argc < 3){
+        cout << "Need a file containing counts and  a value in {1 2 3}!" << endl;
         exit(EXIT_FAILURE);
     }
     vector<int> symbols, runs;
-    string filename(argv[1]);
-    int enc = atoi(argv[3]);
+    string filename_base(argv[1]);
 
     cout << "Reading input file..." << endl;
     read_counts(argv[1], symbols, runs);
     cout << "Done." << endl;
 
-    cout << "Writing run-length encoded file..." << endl;
-    switch(enc){
-        case 1:
-            filename += ".enc1";
-            encode_in_pairs(filename, symbols, runs);
-            break;
-        case 2:
-            filename += ".enc2";
-            encode_in_pairs_star(filename, symbols, runs);
-            break;
-        case 3:
-            filename += "enc3";
-            encode_vector(filename, symbols, runs);
-            break;
+    for(int i = 2; i < argc; i++) {
+        string filename = filename_base;
+        switch (atoi(argv[i])) {
+            case 1:
+                filename += ".enc1";
+                cout << "Writing run-length encoded file " << filename << "..." << endl;
+                encode_in_pairs(filename, symbols, runs);
+                break;
+            case 2:
+                filename += ".enc2";
+                cout << "Writing run-length encoded file " << filename << "..." << endl;
+                encode_vector(filename, symbols, runs);
+                break;
+            case 3:
+                filename += ".enc3";
+                cout << "Writing run-length encoded file " << filename << "..." << endl;
+                encode_in_pairs_star(filename, symbols, runs);
+                break;
+            default:
+                cout << "Need to specify a value in {1 2 3}" << endl;
+        }
     }
     cout << "Done." << endl;
 }

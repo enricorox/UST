@@ -66,28 +66,26 @@ struct heuristic_name_t{
 
 vector<heuristic_name_t> heuristic_dic = {
         {DEFAULT,                            "d"},
-        // seed
-        {SEED_RANDOM_UNITIGS,                "sru"},
-        {SEED_SMALLER_UNITIGS,               "ssu"},
-        {SEED_BIGGER_UNITIGS,                "sbu"},
-        {SEED_MORE_CONNECTED,                "smc"},
-        {SEED_LESS_CONNECTED,                "slc"},
-        {SEED_LOWER_AVERAGE_ABUNDANCE,       "slaa"},
-        {SEED_LOWER_MEDIAN_ABUNDANCE,        "slma"},
-        {SEED_HIGHER_AVERAGE_ABUNDANCE,      "shaa"},
-        {SEED_HIGHER_MEDIAN_ABUNDANCE,       "shma"},
-        // explore
-        {EXPLORE_LESS_CONNECTED,             "elc"},
-        {EXPLORE_MORE_CONNECTED,             "emc"},
-        {EXPLORE_BIGGER_NEIGHBOUR,           "ebn"},
-        {EXPLORE_SMALLER_NEIGHBOUR,          "esn"},
-        {EXPLORE_SIMILAR_ABUNDANCE,          "esa"},
-        {EXPLORE_SIMILAR_ABUNDANCE_ORIENTED, "esao"},
-        {EXPLORE_SIMILAR_AVERAGE_ABUNDANCE,  "esaa"},
-        {EXPLORE_SIMILAR_MEDIAN_ABUNDANCE,   "esma"},
-        // combo
-        //{SEED_LESS_CONNECTED_BIGGER_UNITIG, "lcbu"},
-        //{SEED_LESS_CONNECTED_BIGGER_UNITIG_EXPLORE_SMALLER_NEIGHBOUR, "lcbusn"}
+        // what to do while seeding
+        {SEED_RANDOM_UNITIGS,                "sr"},
+        {SEED_SMALLER_UNITIGS,               "s-l"},
+        {SEED_BIGGER_UNITIGS,                "s+l"},
+        {SEED_MORE_CONNECTED,                "s+c"},
+        {SEED_LESS_CONNECTED,                "s-c"},
+        {SEED_LOWER_AVERAGE_ABUNDANCE,       "s-aa"},
+        {SEED_LOWER_MEDIAN_ABUNDANCE,        "s-ma"},
+        {SEED_HIGHER_AVERAGE_ABUNDANCE,      "s+aa"},
+        {SEED_HIGHER_MEDIAN_ABUNDANCE,       "s+ma"},
+        // what to do while extending
+        {EXPLORE_LESS_CONNECTED,             "e-c"},
+        {EXPLORE_MORE_CONNECTED,             "e+c"},
+        {EXPLORE_BIGGER_NEIGHBOUR,           "e+n"},
+        {EXPLORE_SMALLER_NEIGHBOUR,          "e-n"},
+        {EXPLORE_SIMILAR_ABUNDANCE,          "e=a"},
+        {EXPLORE_SIMILAR_ABUNDANCE_ORIENTED, "e=ao"},
+        {EXPLORE_SIMILAR_AVERAGE_ABUNDANCE,  "e=aa"},
+        {EXPLORE_SIMILAR_MEDIAN_ABUNDANCE,   "e=ma"},
+        // combo are possible
 };
 
 vector<heuristic> FLG_HEURISTIC;

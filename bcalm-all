@@ -1,5 +1,17 @@
 #!/bin/bash
-
+set -e
+echo "*** Reading input sequences..."
 sequences=$(awk -F '-' '{print $1}' sequences.txt| grep -vE "#" sequences.txt)
 
-for s in $sequences; do
+cd SRR
+
+for srr in $sequences; do
+  cd "$srr"
+  for s in "$srr"*.fasta; do
+    echo "*** Running bcalm on $s..."
+    [ ! -f "${s:0:-6}.unitigs.fa" ] || continue
+    bcalm -nb-cores 4 -kmer-size 31 -abundance-min 1 \
+    -in "$s" -all-abundance-counts -verbose 3
+  done
+  cd ..
+done

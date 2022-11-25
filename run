@@ -19,7 +19,7 @@ ROOT_DIR=$(realpath .)
 #heurs=("d" "sru" "ssu" "sbu" "smc" "slc" "slaa" "slma" "shaa" "shma" "elc" "emc" "ebn" "esn" "esa" "esao" "esaa" "esma" \
 #"shaa esma" "shma esma" "slc sbu" "slc esma")
 heurs=("d" "sr" "s-l" "s+l" "s+c" "s-c" "s-aa" "s-ma" "s+aa" "s+ma" "e-c" "e+c" "e+n" "e-n" "e=a" "e=ao" "e=aa" "e=ma" \
-"s+aa e=maa" "s+ma e=ma" "s-c s+b" "s-c e=ma")
+"s+aa e=ma" "s+ma e=ma" "s-c s+l" "s-c e=ma")
 sequences=("$ROOT_DIR"/SRR/SRR*/SRR*.unitigs.fa)
 
 # cli input
@@ -63,8 +63,8 @@ for bcalm_unitigs_abs in "${sequences[@]}"; do
   ratio_fasta_in_out="ratio_fasta_in_out,"
   ratio_counts_ust_out="ratio_counts_ust_out,"
   ratio_counts_ust_enc1="ratio_counts_ust_enc1,"
-  ratio_counts_ust_enc2="ratio_counts_ust_enc3,"
-  ratio_counts_ust_enc3="ratio_counts_ust_enc2,"
+  ratio_counts_ust_enc2="ratio_counts_ust_enc2,"
+  ratio_counts_ust_enc3="ratio_counts_ust_enc3,"
 
   ## file names
   infile="${ROOT_DIR}/SRR/${seq_dir}/${seq_name}.fasta"
@@ -123,7 +123,7 @@ for bcalm_unitigs_abs in "${sequences[@]}"; do
     cd ..
   done
   # save results_csv
-  printf "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n,\n%s\n%s\n%s\n%s\n%s\n,%s\n\n,\n" \
+  printf "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n,\n%s\n%s\n%s\n%s\n%s\n%s\n,\n,\n" \
   "$headers" "$infile_empty_header_sizes" "$n_kmers" "$ust_c_lb" "$ust_c" \
   "$outfile_fa_sizes" "$outfile_fa_zipped_sizes" "$outfile_counts_sizes" "$outfile_counts_zipped_sizes" \
   "$outfile_counts_enc1_sizes" "$outfile_counts_enc1_zipped_sizes" \

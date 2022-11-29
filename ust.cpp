@@ -56,7 +56,8 @@ enum heuristic{
     EXPLORE_BIGGER_NEIGHBOUR, EXPLORE_SMALLER_NEIGHBOUR, SEED_LESS_CONNECTED_BIGGER_UNITIG_EXPLORE_SMALLER_NEIGHBOUR,
     EXPLORE_LESS_CONNECTED, EXPLORE_MORE_CONNECTED,
     EXPLORE_SIMILAR_ABUNDANCE, EXPLORE_SIMILAR_ABUNDANCE_ORIENTED, SEED_LOWER_AVERAGE_ABUNDANCE, SEED_HIGHER_AVERAGE_ABUNDANCE,
-    EXPLORE_SIMILAR_AVERAGE_ABUNDANCE, EXPLORE_SIMILAR_MEDIAN_ABUNDANCE, SEED_LOWER_MEDIAN_ABUNDANCE, SEED_HIGHER_MEDIAN_ABUNDANCE
+    EXPLORE_SIMILAR_AVERAGE_ABUNDANCE, EXPLORE_SIMILAR_MEDIAN_ABUNDANCE, SEED_LOWER_MEDIAN_ABUNDANCE, SEED_HIGHER_MEDIAN_ABUNDANCE,
+    EXPLORE_LOWER_MEDIAN_ABUNDANCE, EXPLORE_HIGHER_MEDIAN_ABUNDANCE
 };
 
 struct heuristic_name_t{
@@ -79,13 +80,15 @@ vector<heuristic_name_t> heuristic_dic = {
         // what to do while extending
         {EXPLORE_LESS_CONNECTED,             "e-c"},
         {EXPLORE_MORE_CONNECTED,             "e+c"},
-        {EXPLORE_BIGGER_NEIGHBOUR,           "e+n"},
-        {EXPLORE_SMALLER_NEIGHBOUR,          "e-n"},
+        {EXPLORE_BIGGER_NEIGHBOUR,           "e+l"},
+        {EXPLORE_SMALLER_NEIGHBOUR,          "e-l"},
         {EXPLORE_SIMILAR_ABUNDANCE,          "e=a"},
         {EXPLORE_SIMILAR_ABUNDANCE_ORIENTED, "e=ao"},
         {EXPLORE_SIMILAR_AVERAGE_ABUNDANCE,  "e=aa"},
         {EXPLORE_SIMILAR_MEDIAN_ABUNDANCE,   "e=ma"},
-        // combo are possible
+        {EXPLORE_LOWER_MEDIAN_ABUNDANCE,     "e-ma"},
+        {EXPLORE_HIGHER_MEDIAN_ABUNDANCE,    "e+ma"}
+        // combo are possible specifying more than one heuristic
 };
 
 vector<heuristic> FLG_HEURISTIC;
@@ -117,6 +120,7 @@ typedef struct {
     int ln; // length
     vector<int> ab;
     double mean_ab;
+    double median_ab;
 } unitig_struct_t;
 
 typedef struct {
@@ -180,8 +184,14 @@ vector<list<int> > newToOld;
 vector<int> walkFirstNode; //given a walk id, what's the first node of that walk
 unordered_map<int, vector<edge_t> > sinkSrcEdges; //int is the unitig id (old id)
 
-inline int d(int a, int b){
+inline int d(double a, double b){
     return abs(a-b);
+}
+
+int static median(vector<int> v){
+    size_t n = v.size() / 2;
+    nth_element(v.begin(), v.begin()+n, v.end());
+    return v[n];
 }
 
 /**
@@ -886,24 +896,28 @@ public:
         return adjList.at(e1.toNode).size() > adjList.at(e2.toNode).size();
     }
 
-    static bool comp_seed_average_lower_abundance(int u, int v){
-    //    return unitigs.at(u).ab.at(0) < unitigs.at(v).ab.at(0);
+    static bool comp_explore_lower_median_abundance(edge_t e1, edge_t e2){
+        return unitigs.at(e1.toNode).median_ab < unitigs.at(e2.toNode).median_ab;
+    }
+
+    static bool comp_explore_higher_median_abundance(edge_t e1, edge_t e2){
+        return unitigs.at(e1.toNode).median_ab > unitigs.at(e2.toNode).median_ab;
+    }
+
+    static bool comp_seed_lower_average_abundance(int u, int v){
         return unitigs.at(u).mean_ab < unitigs.at(v).mean_ab;
     }
 
     static bool comp_seed_lower_median_abundance(int u, int v){
-        //    return unitigs.at(u).ab.at(0) < unitigs.at(v).ab.at(0);
-        return median(unitigs.at(u).ab) < median(unitigs.at(v).ab);
+        return unitigs.at(u).median_ab < unitigs.at(v).median_ab;
     }
 
-    static bool comp_seed_average_higher_abundance(int u, int v){
-        //return unitigs.at(u).ab.at(0) > unitigs.at(v).ab.at(0);
+    static bool comp_seed_higher_average_abundance(int u, int v){
         return unitigs.at(u).mean_ab > unitigs.at(v).mean_ab;
     }
 
     static bool comp_seed_higher_median_abundance(int u, int v){
-        //    return unitigs.at(u).ab.at(0) < unitigs.at(v).ab.at(0);
-        return median(unitigs.at(u).ab) > median(unitigs.at(v).ab);
+        return unitigs.at(u).median_ab > unitigs.at(v).median_ab;
     }
 
     class comp_choose_similar_ab{
@@ -968,12 +982,6 @@ public:
         }
     };
 
-    int static median(vector<int> v){
-        size_t n = v.size() / 2;
-        nth_element(v.begin(), v.begin()+n, v.end());
-        return v[n];
-    }
-
     class comp_choose_similar_median_ab{
     private:
         unitig_struct_t u;
@@ -981,7 +989,7 @@ public:
         explicit comp_choose_similar_median_ab(unitig_struct_t n) : u(n) {  }
 
         bool operator () (edge_t e1, edge_t e2) const {
-            return d(median(u.ab), median(unitigs[e1.toNode].ab)) < d(median(u.ab), median(unitigs[e2.toNode].ab));
+            return d(u.median_ab, unitigs[e1.toNode].median_ab) < d(u.median_ab, unitigs[e2.toNode].median_ab);
         }
     };
 
@@ -1111,22 +1119,22 @@ public:
                         stable_sort(l.begin(), l.end(), comp_explore_smaller_neighbour);
                     break;
                 case EXPLORE_LESS_CONNECTED:
-                    cout << "*** Sorting less connected unitig first" << endl;
+                    cout << "*** Sorting less connected neighbour first" << endl;
                     for(auto & l : adjList)
                         stable_sort(l.begin(), l.end(), comp_explore_less_connected);
                     break;
                 case EXPLORE_MORE_CONNECTED:
-                    cout << "*** Sorting less connected unitig first" << endl;
+                    cout << "*** Sorting more connected neighbour first" << endl;
                     for(auto & l : adjList)
                         stable_sort(l.begin(), l.end(), comp_explore_more_connected);
                     break;
                 case SEED_LOWER_AVERAGE_ABUNDANCE:
                     cout << "*** Sorting with low average abundance first" << endl;
-                    stable_sort(special_order, special_order + V, comp_seed_average_lower_abundance);
+                    stable_sort(special_order, special_order + V, comp_seed_lower_average_abundance);
                     break;
                 case SEED_HIGHER_AVERAGE_ABUNDANCE:
                     cout << "*** Sorting with high average abundance first" << endl;
-                    stable_sort(special_order, special_order + V, comp_seed_average_higher_abundance);
+                    stable_sort(special_order, special_order + V, comp_seed_higher_average_abundance);
                     break;
                 case SEED_LOWER_MEDIAN_ABUNDANCE:
                     cout << "*** Sorting with low median abundance first" << endl;
@@ -1135,6 +1143,16 @@ public:
                 case SEED_HIGHER_MEDIAN_ABUNDANCE:
                     cout << "*** Sorting with high median abundance first" << endl;
                     stable_sort(special_order, special_order + V, comp_seed_higher_median_abundance);
+                    break;
+                case EXPLORE_LOWER_MEDIAN_ABUNDANCE:
+                    cout << "*** Sorting neighbours with lower median abundance first" << endl;
+                    for(auto & l : adjList)
+                        stable_sort(l.begin(), l.end(), comp_explore_lower_median_abundance);
+                    break;
+                case EXPLORE_HIGHER_MEDIAN_ABUNDANCE:
+                    cout << "*** Sorting neighbours with higher median abundance first" << endl;
+                    for(auto & l : adjList)
+                        stable_sort(l.begin(), l.end(), comp_explore_higher_median_abundance);
                     break;
             }
 
@@ -1501,6 +1519,7 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
                 mean_ab += a;
             }
             unitig_struct.mean_ab = mean_ab / unitig_struct.ln;
+            unitig_struct.median_ab = median(unitig_struct.ab);
 
 
            sscanf(line.substr(Lpos, line.length() - Lpos).c_str(), "%[^\n]s", edgesline);

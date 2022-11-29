@@ -16,10 +16,14 @@ PATH="/home/enrico/bio-bin/pxz":$PATH
 ROOT_DIR=$(realpath .)
 
 # default inputs
-#heurs=("d" "sru" "ssu" "sbu" "smc" "slc" "slaa" "slma" "shaa" "shma" "elc" "emc" "ebn" "esn" "esa" "esao" "esaa" "esma" \
-#"shaa esma" "shma esma" "slc sbu" "slc esma")
-heurs=("d" "sr" "s-l" "s+l" "s+c" "s-c" "s-aa" "s-ma" "s+aa" "s+ma" "e-c" "e+c" "e+n" "e-n" "e=a" "e=ao" "e=aa" "e=ma" \
-"s+aa e=ma" "s+ma e=ma" "s-c s+l" "s-c e=ma")
+# old names:
+# heurs=("d" "sru" "ssu" "sbu" "smc" "slc" "slaa" "slma" "shaa" "shma" "elc" "emc" "ebn" "esn" "esa" "esao" "esaa" "esma" \
+# "shaa esma" "shma esma" "slc sbu" "slc esma")
+# new names
+#heurs=("d" "sr" "s-l" "s+l" "s+c" "s-c" "s-aa" "s-ma" "s+aa" "s+ma" "e-c" "e+c" "e+l" "e-l" "e=a" "e=ao" "e=aa" "e=ma" \
+#"s+aa e=ma" "s+ma e=ma" "s-c s+l" "s-c e=ma")
+# new combo
+heurs=("e+l s-l") # "e=ma e+c s-c")
 sequences=("$ROOT_DIR"/SRR/SRR*/SRR*.unitigs.fa)
 
 # cli input
@@ -133,6 +137,8 @@ for bcalm_unitigs_abs in "${sequences[@]}"; do
   "$ratio_counts_ust_enc1" "$ratio_counts_ust_enc2" "$ratio_counts_ust_enc3" >> "$results_csv"
   cd ..
 done
+
+cd ..
 
 # all results in one file
 cat ./*.csv > results_all.csv

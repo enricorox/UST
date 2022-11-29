@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name fasterq
-#SBATCH --output output_fasterq.txt
-#SBATCH --error errors_fasterq.txt
+#SBATCH --job-name bcalm
+#SBATCH --output output_bcalm.txt
+#SBATCH --error errors_bcalm.txt
 #SBATCH --mail-user enrico.rossignolo@studenti.unipd.it
 #SBATCH --mail-type ALL
 #SBATCH
@@ -11,6 +11,7 @@
 #SBATCH --mem 80G
 
 set -e
+NTHREAD=1
 echo "*** Reading input sequences..."
 sequences=$(awk -F '-' '{print $1}' sequences.txt| grep -vE "#" sequences.txt)
 
@@ -21,7 +22,7 @@ for srr in $sequences; do
   for s in "$srr"*.fasta; do
     echo "*** Running bcalm on $s..."
     [ ! -f "${s:0:-6}.unitigs.fa" ] || continue
-    srun --ntasks 1 bcalm -nb-cores 4 -kmer-size 31 -abundance-min 1 \
+    srun --ntasks 1 bcalm -nb-cores $NTHREAD -kmer-size 31 -abundance-min 1 \
     -in "$s" -all-abundance-counts -verbose 3 &
   done
   cd ..

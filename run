@@ -21,9 +21,9 @@ ROOT_DIR=$(realpath .)
 # "shaa esma" "shma esma" "slc sbu" "slc esma")
 # new names
 #heurs=("d" "sr" "s-l" "s+l" "s+c" "s-c" "s-aa" "s-ma" "s+aa" "s+ma" "e-c" "e+c" "e+l" "e-l" "e=a" "e=ao" "e=aa" "e=ma" \
-#"s+aa e=ma" "s+ma e=ma" "s-c s+l" "s-c e=ma")
+#"s+aa e=ma" "s+ma e=ma" "s-c s+l" "s-c e=ma" "e+l s-l")
 # new combo
-heurs=("e+l s-l") # "e=ma e+c s-c")
+heurs=("s-ma e-ma") # "e=ma e+c s-c")
 sequences=("$ROOT_DIR"/SRR/SRR*/SRR*.unitigs.fa)
 
 # cli input

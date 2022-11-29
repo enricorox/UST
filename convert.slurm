@@ -7,7 +7,7 @@
 #SBATCH --mail-type ALL
 #SBATCH
 #SBATCH --time 60:00
-#SBATCH --ntasks 8
+#SBATCH --ntasks 20
 #SBATCH --partition allgroups
 #SBATCH --mem 8G
 
@@ -15,7 +15,7 @@ cd /nfsd/bcb/bcbg/prog_9/UST
 #your working directory
 
 set -e
-NTHREAD=8
+NTHREAD=1
 # PATH=/home/enrico/bio-bin/sratoolkit.3.0.0-ubuntu64/bin:$PATH
 PATH="/nfsd/bcb/bcbg/prog_9/bin/sratoolkit.3.0.1-ubuntu64/bin":$PATH
 
@@ -27,6 +27,9 @@ for s in $sequences; do
   echo
   echo "*** Converting $s..."
   [[ -f "${s}.fasta" || -f "${s}_1.fasta" || -f "${s}_2.fasta" ]] \
-  || srun fasterq-dump --threads $NTHREAD --progress --fasta --split-files "$s" --outdir "$s"
-  echo "*** $s converted!"
+  || srun --ntasks 1 fasterq-dump --threads $NTHREAD --progress --fasta --split-files "$s" --outdir "$s" &
 done
+
+wait
+
+echo "*** All converted!"

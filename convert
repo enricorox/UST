@@ -5,14 +5,11 @@ PATH=/home/enrico/bio-bin/sratoolkit.3.0.0-ubuntu64/bin:$PATH
 
 sequences=$(awk -F '-' '{print $1}' sequences.txt| grep -vE "#" sequences.txt)
 
+mkdir -p SRR && cd SRR
+
 for s in $sequences; do
-  echo "*** Downloading $s..."
-  prefetch --progress "$s"
-  echo "*** $s downloaded!"
-  echo
   echo "*** Converting $s..."
   [[ -f "${s}.fasta" || -f "${s}_1.fasta" || -f "${s}_2.fasta" ]] \
   || fasterq-dump --threads $NTHREAD --progress --fasta --split-files "$s" --outdir "$s"
   echo "*** $s converted!"
-  #mv -v "${s}"*.fasta "$s"
 done

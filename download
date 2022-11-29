@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+PATH=/home/enrico/bio-bin/sratoolkit.3.0.0-ubuntu64/bin:$PATH
+
+sequences=$(awk -F '-' '{print $1}' sequences.txt| grep -vE "#" sequences.txt)
+
+mkdir -p SRR && cd SRR
+
+for s in $sequences; do
+  echo "*** Downloading $s..."
+  prefetch --progress "$s"
+  echo "*** $s downloaded!"
+done

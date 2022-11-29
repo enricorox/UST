@@ -8,7 +8,7 @@
 #SBATCH --time 60:00
 #SBATCH --ntasks 20
 #SBATCH --partition allgroups
-#SBATCH --mem 8G
+#SBATCH --mem 80G
 
 set -e
 echo "*** Reading input sequences..."

@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
-PATH=/home/enrico/bio-bin/sratoolkit.3.0.0-ubuntu64/bin:$PATH
+# PATH=/home/enrico/bio-bin/sratoolkit.3.0.0-ubuntu64/bin:$PATH
+PATH="/nfsd/bcb/bcbg/prog_9/sratoolkit.3.0.1-ubuntu64/bin":$PATH
 
 sequences=$(awk -F '-' '{print $1}' sequences.txt| grep -vE "#" sequences.txt)
 

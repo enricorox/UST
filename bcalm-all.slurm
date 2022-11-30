@@ -7,12 +7,12 @@
 #SBATCH
 #SBATCH --time 60:00
 #SBATCH --ntasks 1
-#SBATCH --cpus-per-task 4
+#SBATCH --cpus-per-task 8
 #SBATCH --partition allgroups
 #SBATCH --mem 20G
 
 set -e
-NTHREAD=4
+NTHREAD=8
 source /nfsd/bcb/bcbg/prog_9/anaconda3/bin/activate
 echo "*** Reading input sequences..."
 sequences=$(awk -F '-' '{print $1}' sequences.txt| grep -vE "#" sequences.txt)

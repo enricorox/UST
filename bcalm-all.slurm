@@ -5,7 +5,7 @@
 #SBATCH --mail-user enrico.rossignolo@studenti.unipd.it
 #SBATCH --mail-type ALL
 #SBATCH
-#SBATCH --time 60:00
+#SBATCH --time 10:00:00
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 8
 #SBATCH --partition allgroups

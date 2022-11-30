@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name bcalm
-#SBATCH --output output_bcalm.txt
-#SBATCH --error errors_bcalm.txt
+#SBATCH --output bcalm.txt
+#SBATCH --error bcalm.txt
 #SBATCH --mail-user enrico.rossignolo@studenti.unipd.it
 #SBATCH --mail-type ALL
 #SBATCH
@@ -9,7 +9,7 @@
 #SBATCH --ntasks 12
 #SBATCH --cpus-per-task 4
 #SBATCH --partition allgroups
-#SBATCH --mem 80G
+#SBATCH --mem 8G
 
 set -e
 NTHREAD=4

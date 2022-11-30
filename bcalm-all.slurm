@@ -6,12 +6,14 @@
 #SBATCH --mail-type ALL
 #SBATCH
 #SBATCH --time 60:00
-#SBATCH --ntasks 20
+#SBATCH --ntasks 12
+#SBATCH --cpus-per-task 4
 #SBATCH --partition allgroups
 #SBATCH --mem 80G
 
 set -e
-NTHREAD=1
+NTHREAD=4
+source /nfsd/bcb/bcbg/prog_9/anaconda3/bin/activate
 echo "*** Reading input sequences..."
 sequences=$(awk -F '-' '{print $1}' sequences.txt| grep -vE "#" sequences.txt)
 

@@ -13,7 +13,8 @@
 
 set -e
 NTHREAD=8
-source /nfsd/bcb/bcbg/prog_9/anaconda3/bin/activate
+# source /nfsd/bcb/bcbg/prog_9/anaconda3/bin/activate
+PATH="/nfsd/bcb/bcbg/prog_9/bin/bcalm":$PATH
 echo "*** Reading input sequences..."
 sequences=$(awk -F '-' '{print $1}' sequences.txt| grep -vE "#" sequences.txt)
 

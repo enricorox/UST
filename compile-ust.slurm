@@ -21,5 +21,7 @@ make all
 ## compile wc-actg and enc
 c++ wc-actg.cpp -o wc-actg
 c++ enc-run-length.cpp -o enc
-
-
+## compile pxz
+cd "/nfsd/bcb/bcbg/prog_9/bin/pxz"
+make clean
+make

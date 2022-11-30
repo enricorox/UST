@@ -14,5 +14,5 @@
 set -e
 
 cd "/nfsd/bcb/bcbg/prog_9/bin/bcalm"
-cmake .
-make -j 16
+srun cmake .
+srun make -j 16

@@ -1,4 +1,15 @@
 #!/bin/bash
+#SBATCH --job-name run-ust
+#SBATCH --output run-ust.txt
+#SBATCH --error run-ust.txt
+#SBATCH --mail-user enrico.rossignolo@studenti.unipd.it
+#SBATCH --mail-type ALL
+#SBATCH
+#SBATCH --time 10:00:00
+#SBATCH --ntasks 1
+#SBATCH --cpus-per-task 16
+#SBATCH --partition allgroups
+#SBATCH --mem 20G
 
 # compute file size
 dim(){
@@ -8,10 +19,12 @@ dim(){
 # exit if errors occur
 set -e
 
+cd "/nfsd/bcb/bcbg/prog_9/UST"
+
 # ust & wc-actg & enc
 PATH=$PWD:$PATH
 # pxz
-PATH="/home/enrico/bio-bin/pxz":$PATH
+PATH="/nfsd/bcb/bcbg/prog_9/bin/pxz":$PATH
 # current abs path
 ROOT_DIR=$(realpath .)
 
@@ -94,19 +107,19 @@ for bcalm_unitigs_abs in "${sequences[@]}"; do
     mkdir -p "$heur" && cd "$heur"
 
     # shellcheck disable=SC2086
-    [ -f "$outfile_fa" ] || ust -k 31 -a 1 -h $heur -i "$bcalm_unitigs_abs"
+    [ -f "$outfile_fa" ] || srun ust -k 31 -a 1 -h $heur -i "$bcalm_unitigs_abs"
     echo "* Compressing ${outfile_fa}..."
-    [ -f "$outfile_fa_zipped" ] || pxz --extreme -k -f "$outfile_fa"
+    [ -f "$outfile_fa_zipped" ] || srun pxz --extreme -k -f "$outfile_fa"
     echo "* Compressing ${outfile_counts}..."
-    [ -f "$outfile_counts_zipped" ] || pxz --extreme -k -f "$outfile_counts"
+    [ -f "$outfile_counts_zipped" ] || srun pxz --extreme -k -f "$outfile_counts"
     echo "* Encoding ${outfile_counts}..."
     [[ -f "${outfile_counts_enc1}" ]] || enc "$outfile_counts" 1 2 3 # avoid multiple reads of the same file
     echo "* Compressing ${outfile_counts_enc1}..."
-    [ -f "$outfile_counts_enc1_zipped" ] || pxz --extreme -k -f "$outfile_counts_enc1"
+    [ -f "$outfile_counts_enc1_zipped" ] || srun pxz --extreme -k -f "$outfile_counts_enc1"
     echo "* Compressing ${outfile_counts_enc2}..."
-    [ -f "$outfile_counts_enc2_zipped" ] || pxz --extreme -k -f "$outfile_counts_enc2"
+    [ -f "$outfile_counts_enc2_zipped" ] || srun pxz --extreme -k -f "$outfile_counts_enc2"
     echo "* Compressing ${outfile_counts_enc3}..."
-    [ -f "$outfile_counts_enc3_zipped" ] || pxz --extreme -k -f "$outfile_counts_enc3"
+    [ -f "$outfile_counts_enc3_zipped" ] || srun pxz --extreme -k -f "$outfile_counts_enc3"
 
     headers+="${heur},"
     infile_empty_header_sizes+="${infile_empty_header_size},"

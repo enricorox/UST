@@ -16,7 +16,8 @@ set -e
 cd "/nfsd/bcb/bcbg/prog_9/UST"
 
 ## compile ust
-make
+make clean
+make all
 ## compile wc-actg and enc
 c++ wc-actg.cpp -o wc-actg
 c++ enc-run-length.cpp -o enc

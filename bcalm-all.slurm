@@ -6,10 +6,10 @@
 #SBATCH --mail-type ALL
 #SBATCH
 #SBATCH --time 60:00
-#SBATCH --ntasks 20
+#SBATCH --ntasks 1
 #SBATCH --cpus-per-task 4
 #SBATCH --partition allgroups
-#SBATCH --mem 160G
+#SBATCH --mem 16G
 
 set -e
 NTHREAD=4
@@ -24,12 +24,10 @@ for srr in $sequences; do
   for s in "$srr"*.fasta; do
     echo "*** Running bcalm on $s..."
     [ ! -f "${s:0:-6}.unitigs.fa" ] || continue
-    srun --ntasks 1 --mem 8 --nodes=1-1 bcalm -nb-cores $NTHREAD -kmer-size 31 -abundance-min 1 \
-    -in "$s" -all-abundance-counts -verbose 3 &
+    srun --ntasks 1 --mem 16 --nodes=1-1 bcalm -max-memory 16000 -nb-cores $NTHREAD -kmer-size 31 -abundance-min 1 \
+    -in "$s" -all-abundance-counts -verbose 3
   done
   cd ..
 done
-
-wait
 
 echo "Computed unitigs for all!"

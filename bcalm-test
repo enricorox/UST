@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e
+
+PATH="/home/enrico/bio-bin/bcalm/":$PATH
+
+mkdir bcalm-test
+s="SRR/SRR001665/SRR001665_1.fasta"
+
+bcalm -max-memory 16000 -nb-cores 4 -kmer-size 31 -abundance-min 1 \
+-in "$s" -all-abundance-counts -verbose 3
+mv "$s.unitigs.fa" "bcalm-test/$s.unitigs.t4.fa"

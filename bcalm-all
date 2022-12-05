@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+PATH="/home/enrico/bio-bin/bcalm/":$PATH
+
 echo "*** Reading input sequences..."
 sequences=$(awk -F '-' '{print $1}' sequences.txt| grep -vE "#" sequences.txt)
 

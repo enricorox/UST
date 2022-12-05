@@ -13,8 +13,9 @@
 
 set -e
 NTHREAD=8
-# source /nfsd/bcb/bcbg/prog_9/anaconda3/bin/activate
+abundance_min=2
 PATH="/nfsd/bcb/bcbg/prog_9/bin/bcalm":$PATH
+
 echo "*** Reading input sequences..."
 sequences=$(awk -F '-' '{print $1}' sequences.txt| grep -vE "#" sequences.txt)
 
@@ -23,9 +24,9 @@ cd SRR
 for srr in $sequences; do
   cd "$srr"
   for s in "$srr"*.fasta; do
-    echo "*** Running bcalm on $s..."
+    echo "*** Running bcalm with NTHREAD=$NTHREAD, abundance_min=$abundance_min, s=$s..."
     [ ! -f "${s:0:-6}.unitigs.fa" ] || continue
-    srun bcalm -max-memory 16000 -nb-cores $NTHREAD -kmer-size 31 -abundance-min 1 \
+    srun bcalm -max-memory 16000 -nb-cores $NTHREAD -kmer-size 31 -abundance-min $abundance_min \
     -in "$s" -all-abundance-counts -verbose 3
   done
   cd ..

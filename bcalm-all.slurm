@@ -24,10 +24,11 @@ cd SRR
 for srr in $sequences; do
   cd "$srr"
   for s in "$srr"*.fasta; do
+    outfile="${s:0:-6}.a${abundance_min}.unitigs.fa"
     echo "*** Running bcalm with NTHREAD=$NTHREAD, abundance_min=$abundance_min, s=$s..."
-    [ ! -f "${s:0:-6}.a${abundance_min}.unitigs.fa" ] || continue
+    [ ! -f "$outfile" ] || continue
     srun bcalm -max-memory 16000 -nb-cores $NTHREAD -kmer-size 31 -abundance-min $abundance_min \
-    -in "$s" -all-abundance-counts
+    -in "$s" -all-abundance-counts -out "$outfile"
   done
   cd ..
 done

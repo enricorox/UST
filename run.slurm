@@ -36,7 +36,7 @@ a=2
 heurs=("d" "sr" "s-l" "s+l" "s+c" "s-c" "s-aa" "s-ma" "s+aa" "s+ma" "e-c" "e+c" "e+l" "e-l" "e=a" "e=ao" "e=aa" "e=ma" \
 "s+aa e=ma" "s+ma e=ma" "s-c s+l" "s-c e=ma" "e+c s-c" "e+l s-l" "s-ma e-ma")
 
-sequences=("$ROOT_DIR"/SRR/SRR*/SRR*.a${a}.unitigs.fa)
+sequences=("$ROOT_DIR"/SRR/SRR*/SRR*".a${a}.unitigs.fa")
 
 # cli input
 if [ -n "$1" ]; then sequences=("$1"); fi

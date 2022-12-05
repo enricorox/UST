@@ -21,8 +21,8 @@ s="SRR/SRR001665/SRR001665_1.fasta"
 
 srun bcalm -max-memory 16000 -nb-cores 8 -kmer-size 31 -abundance-min 1 \
 -in "$s" -all-abundance-counts -verbose 3
-mv "$s.unitigs.fa" "bcalm-test-dir/$s.unitigs.t8.fa"
+mv "SRR001665_1.unitigs.fa" "bcalm-test-dir/SRR001665_1.unitigs.t8.fa"
 
 srun bcalm -max-memory 16000 -nb-cores 4 -kmer-size 31 -abundance-min 1 \
 -in "$s" -all-abundance-counts -verbose 3
-mv "$s.unitigs.fa" "bcalm-test-dir/$s.unitigs.t4.fa"
+mv "SRR001665_1.unitigs.fa" "bcalm-test-dir/SRR001665_1.unitigs.t4.fa"

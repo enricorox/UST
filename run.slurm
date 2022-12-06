@@ -42,15 +42,15 @@ sequences=("$ROOT_DIR"/SRR/SRR*/SRR*".a${a}.unitigs.fa")
 if [ -n "$1" ]; then sequences=("$1"); fi
 if [ -n "$2" ]; then heurs=("$2"); fi
 
-mkdir -p "results" && cd "results"
+mkdir -p "results-a${a}" && cd "results-a${a}"
 
 for bcalm_unitigs_abs in "${sequences[@]}"; do
   # derive strings
   bcalm_unitigs=$(basename "$bcalm_unitigs_abs")
-  seq_name=${bcalm_unitigs:0:-11} # remove ".unitigs.fa" from "SRR001665_2.unitigs.fa"
+  seq_name=${bcalm_unitigs:0:-14} # remove ".ax.unitigs.fa" from "SRR001665_2.unitigs.fa"
   seq_dir=$(echo "$seq_name" | awk -F '_' '{printf $1};') # remove _1 or _2 if any
 
-  results_csv="${ROOT_DIR}/${seq_name}.csv"
+  results_csv="${ROOT_DIR}/${seq_name}.a${a}.csv"
   rm -rf "$results_csv"
 
   echo "*** Processing $bcalm_unitigs ($seq_dir:$seq_name) >> $results_csv"

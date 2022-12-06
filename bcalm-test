@@ -7,6 +7,6 @@ PATH="/home/enrico/bio-bin/bcalm/":$PATH
 mkdir -p "bcalm-test-dir"
 s="SRR/SRR001665/SRR001665_1.fasta"
 
-bcalm -max-memory 16000 -nb-cores 4 -kmer-size 31 -abundance-min 1 \
+bcalm -max-memory 16000 -nb-cores 4 -kmer-size 31 -abundance-min 2 \
 -in "$s" -all-abundance-counts -verbose 3
-mv "SRR001665_1.unitigs.fa" "bcalm-test-dir/SRR001665_1.unitigs.t4.fa"
+mv "SRR001665_1.unitigs.fa" "bcalm-test-dir/SRR001665_1.a2.unitigs.t4.fa"

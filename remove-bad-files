@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# compute file size
+dim(){
+  stat -c %s "${1}"
+}
+
+for file in results/SRR*/*.xz; do
+  if [ ! -s "$file" ]; then
+    rm -v "$file"
+  fi
+done

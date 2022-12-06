@@ -10,6 +10,7 @@ set -e
 # expand globs
 shopt -s nullglob
 
+
 # ust & wc-actg & enc
 PATH=$PWD:$PATH
 # pxz
@@ -17,23 +18,27 @@ PATH="/home/enrico/bio-bin/pxz":$PATH
 # current abs path
 ROOT_DIR=$(realpath .)
 
+# choose dataset (1: all kmers, 2: filter singletons)
+a=2
+# default inputs
 heurs=("d" "sr" "s-l" "s+l" "s+c" "s-c" "s-aa" "s-ma" "s+aa" "s+ma" "e-c" "e+c" "e+l" "e-l" "e=a" "e=ao" "e=aa" "e=ma" \
 "s+aa e=ma" "s+ma e=ma" "s-c s+l" "s-c e=ma" "e+c s-c" "e+l s-l" "s-ma e-ma")
-sequences=("$ROOT_DIR"/SRR/SRR*/SRR*.unitigs.fa)
+
+sequences=("$ROOT_DIR"/SRR/SRR*/SRR*".a${a}.unitigs.fa")
 
 # cli input
 if [ -n "$1" ]; then sequences=("$1"); fi
 if [ -n "$2" ]; then heurs=("$2"); fi
 
-mkdir -p "results" && cd "results"
+mkdir -p "results-a${a}" && cd "results-a${a}"
 
 for bcalm_unitigs_abs in "${sequences[@]}"; do
   # derive strings
   bcalm_unitigs=$(basename "$bcalm_unitigs_abs")
-  seq_name=${bcalm_unitigs:0:-11} # remove ".unitigs.fa" from "SRR001665_2.unitigs.fa"
+  seq_name=${bcalm_unitigs:0:-14} # remove ".ax.unitigs.fa" from "SRR001665_2.unitigs.fa"
   seq_dir=$(echo "$seq_name" | awk -F '_' '{printf $1};') # remove _1 or _2 if any
 
-  results_csv="${ROOT_DIR}/${seq_name}.csv"
+  results_csv="${ROOT_DIR}/${seq_name}.a${a}.csv"
   rm -rf "$results_csv"
 
   echo "*** Processing $bcalm_unitigs ($seq_dir:$seq_name) >> $results_csv"
@@ -89,19 +94,19 @@ for bcalm_unitigs_abs in "${sequences[@]}"; do
     mkdir -p "$heur" && cd "$heur"
 
     # shellcheck disable=SC2086
-    [ -f "$outfile_fa" ] || ust -k 31 -a 1 -h $heur -i "$bcalm_unitigs_abs"
+    [ -f "$outfile_fa" ] ||  ust -k 31 -a 1 -h $heur -i "$bcalm_unitigs_abs"
     echo "* Compressing ${outfile_fa}..."
-    [ -f "$outfile_fa_zipped" ] || pxz --extreme -k -f "$outfile_fa"
+    [ -f "$outfile_fa_zipped" ] ||  pxz --extreme -k -f "$outfile_fa"
     echo "* Compressing ${outfile_counts}..."
-    [ -f "$outfile_counts_zipped" ] || pxz --extreme -k -f "$outfile_counts"
+    [ -f "$outfile_counts_zipped" ] ||  pxz --extreme -k -f "$outfile_counts"
     echo "* Encoding ${outfile_counts}..."
     [[ -f "${outfile_counts_enc1}" ]] || enc "$outfile_counts" 1 2 3 # avoid multiple reads of the same file
     echo "* Compressing ${outfile_counts_enc1}..."
-    [ -f "$outfile_counts_enc1_zipped" ] || pxz --extreme -k -f "$outfile_counts_enc1"
+    [ -f "$outfile_counts_enc1_zipped" ] ||  pxz --extreme -k -f "$outfile_counts_enc1"
     echo "* Compressing ${outfile_counts_enc2}..."
-    [ -f "$outfile_counts_enc2_zipped" ] || pxz --extreme -k -f "$outfile_counts_enc2"
+    [ -f "$outfile_counts_enc2_zipped" ] ||  pxz --extreme -k -f "$outfile_counts_enc2"
     echo "* Compressing ${outfile_counts_enc3}..."
-    [ -f "$outfile_counts_enc3_zipped" ] || pxz --extreme -k -f "$outfile_counts_enc3"
+    [ -f "$outfile_counts_enc3_zipped" ] ||  pxz --extreme -k -f "$outfile_counts_enc3"
 
     headers+="${heur},"
     infile_empty_header_sizes+="${infile_empty_header_size},"

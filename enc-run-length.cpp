@@ -6,6 +6,9 @@
 #include <fstream>
 #include <vector>
 
+#define SYMBOL_RUN_SEPARATOR " "
+#define BLOCK_SEPARATOR "\n"
+
 using namespace std;
 
 void read_counts(const string plain_file, vector<int> &symbols, vector<int> &runs){
@@ -35,6 +38,18 @@ void read_counts(const string plain_file, vector<int> &symbols, vector<int> &run
     plain.close();
 }
 
+vector<int> delta_transform(vector<int> symbols){
+    vector<int> deltas = {symbols[0]};
+    for(int i = 1; i < symbols.size(); i++){
+        if(deltas[i - 1] >= 0) {
+            int delta = symbols[i] - symbols[i - 1];
+            deltas.push_back(delta);
+        }else
+            deltas.push_back(symbols[i]);
+    }
+    return deltas;
+}
+
 void encode_in_pairs(const string encoded_file, const vector<int> &symbols, const vector<int> &runs){
     ofstream encoded;
     encoded.open(encoded_file);
@@ -60,12 +75,12 @@ void encode_in_pairs_star(const string encoded_file, const vector<int> &symbols,
 
     encoded << symbols[0];
     if(runs[0] != 1)
-        encoded << ":" << runs[0];
+        encoded << SYMBOL_RUN_SEPARATOR << runs[0];
 
     for(int i = 1; i < symbols.size(); i++){
-        encoded << "\n" << symbols[i];
+        encoded << BLOCK_SEPARATOR << symbols[i];
         if(runs[i] != 1)
-            encoded << ":" << runs[i];
+            encoded << SYMBOL_RUN_SEPARATOR << runs[i];
     }
     encoded.close();
 }
@@ -102,6 +117,18 @@ void encode_vector(const string encoded_file, const vector<int> &symbols, const 
     encoded.close();
 }
 
+void encode_vectors_binary(const string encoded_file, const vector<int> &symbols, const vector<int> &runs){
+    ofstream encoded;
+    encoded.open(encoded_file);
+    for(auto symbol : symbols){
+        encoded.write((char *) &symbol, 2);
+    }
+    for(auto run : runs){
+        encoded.write((char *) &run, 2);
+    }
+    encoded.close();
+}
+
 int main(int argc, char **argv){
     if(argc < 3){
         cout << "Need a file containing counts and  a value in {1 2 3}!" << endl;
@@ -131,6 +158,21 @@ int main(int argc, char **argv){
                 filename += ".enc3";
                 cout << "Writing run-length encoded file " << filename << "..." << endl;
                 encode_in_pairs_star(filename, symbols, runs);
+                break;
+            case 4:
+                filename += ".enc4";
+                cout << "Writing run-length encoded file " << filename << "..." << endl;
+                encode_vectors_binary(filename, symbols, runs);
+                break;
+            case 5:
+                filename += ".enc5";
+                cout << "Writing run-length encoded file " << filename << "..." << endl;
+                encode_in_pairs_star(filename, delta_transform(symbols), runs);
+                break;
+            case 6:
+                filename += ".enc6";
+                cout << "Writing run-length encoded file " << filename << "..." << endl;
+                encode_vectors_binary(filename, delta_transform(symbols), runs);
                 break;
             default:
                 cout << "Need to specify a value in {1 2 3}" << endl;

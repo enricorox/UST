@@ -6,8 +6,8 @@
 #include <fstream>
 #include <vector>
 
-#define SYMBOL_RUN_SEPARATOR " "
-#define BLOCK_SEPARATOR "\n"
+#define SYMBOL_RUN_SEPARATOR "-"
+#define BLOCK_SEPARATOR " "
 
 using namespace std;
 

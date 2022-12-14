@@ -1136,6 +1136,13 @@ public:
                     cout << "*** Sorting with high average abundance first" << endl;
                     stable_sort(special_order, special_order + V, comp_seed_higher_average_abundance);
                     break;
+                    cout << "ordered abundance:" << endl;
+                    for(int i = 0; i < V; i++){
+                        cout << unitigs[special_order[i]].mean_ab << " ";
+                        if((i-1) % 10 == 0)
+                            cout << endl;
+                    }
+                    break;
                 case SEED_LOWER_MEDIAN_ABUNDANCE:
                     cout << "*** Sorting with low median abundance first" << endl;
                     stable_sort(special_order, special_order + V, comp_seed_lower_median_abundance);
@@ -1511,16 +1518,21 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
 
             // parsing counts
             stringstream ss(line.substr(abpos, Lpos - abpos));
+            //cout << "string stream: " << line.substr(abpos, Lpos - abpos) << "\n";
+            //cout << "ln = " << unitig_struct.ln << "\n";
             string ab;
-            double mean_ab;
+            double mean_ab = 0;
             while(ss >> ab){
                 int a = stoi(ab);
+                //cout << a << " ";
                 unitig_struct.ab.push_back(a);
                 mean_ab += a;
             }
-            unitig_struct.mean_ab = mean_ab / unitig_struct.ln;
+            //cout << "\n";
+            unitig_struct.mean_ab = mean_ab / unitig_struct.ab.size();
             unitig_struct.median_ab = median(unitig_struct.ab);
-
+            //cout << "unitig.mean_ab = " << unitig_struct.mean_ab << "\n";
+            //cout << "unitig.median_ab = " << unitig_struct.median_ab << "\n";
 
            sscanf(line.substr(Lpos, line.length() - Lpos).c_str(), "%[^\n]s", edgesline);
 

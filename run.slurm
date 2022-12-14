@@ -108,17 +108,17 @@ for bcalm_unitigs_abs in "${sequences[@]}"; do
     # shellcheck disable=SC2086
     [ -f "$outfile_fa" ] || srun ust -k 31 -a 1 -h $heur -i "$bcalm_unitigs_abs"
     echo "* Compressing ${outfile_fa}..."
-    [ -f "$outfile_fa_zipped" ] || srun pxz --extreme -k -f "$outfile_fa"
+    [ -f "$outfile_fa_zipped" ] || srun xz --extreme -k -f "$outfile_fa"
     echo "* Compressing ${outfile_counts}..."
-    [ -f "$outfile_counts_zipped" ] || srun pxz --extreme -k -f "$outfile_counts"
+    [ -f "$outfile_counts_zipped" ] || srun xz --extreme -k -f "$outfile_counts"
     echo "* Encoding ${outfile_counts}..."
     [[ -f "${outfile_counts_enc1}" ]] || enc "$outfile_counts" 1 2 3 # avoid multiple reads of the same file
     echo "* Compressing ${outfile_counts_enc1}..."
-    [ -f "$outfile_counts_enc1_zipped" ] || srun pxz --extreme -k -f "$outfile_counts_enc1"
+    [ -f "$outfile_counts_enc1_zipped" ] || srun xz --extreme -k -f "$outfile_counts_enc1"
     echo "* Compressing ${outfile_counts_enc2}..."
-    [ -f "$outfile_counts_enc2_zipped" ] || srun pxz --extreme -k -f "$outfile_counts_enc2"
+    [ -f "$outfile_counts_enc2_zipped" ] || srun xz --extreme -k -f "$outfile_counts_enc2"
     echo "* Compressing ${outfile_counts_enc3}..."
-    [ -f "$outfile_counts_enc3_zipped" ] || srun pxz --extreme -k -f "$outfile_counts_enc3"
+    [ -f "$outfile_counts_enc3_zipped" ] || srun xz --extreme -k -f "$outfile_counts_enc3"
 
     headers+="${heur},"
     infile_empty_header_sizes+="${infile_empty_header_size},"

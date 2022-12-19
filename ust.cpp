@@ -18,8 +18,6 @@
 #include <list>
 #include <stack>
 #include <unordered_map>
-#include <utility>
-#include <queue>
 #include <deque>
 #include <unistd.h>
 #include <tuple>
@@ -57,7 +55,8 @@ enum heuristic{
     EXPLORE_LESS_CONNECTED, EXPLORE_MORE_CONNECTED,
     EXPLORE_SIMILAR_ABUNDANCE, EXPLORE_SIMILAR_ABUNDANCE_ORIENTED, SEED_LOWER_AVERAGE_ABUNDANCE, SEED_HIGHER_AVERAGE_ABUNDANCE,
     EXPLORE_SIMILAR_AVERAGE_ABUNDANCE, EXPLORE_SIMILAR_MEDIAN_ABUNDANCE, SEED_LOWER_MEDIAN_ABUNDANCE, SEED_HIGHER_MEDIAN_ABUNDANCE,
-    EXPLORE_LOWER_MEDIAN_ABUNDANCE, EXPLORE_HIGHER_MEDIAN_ABUNDANCE
+    EXPLORE_LOWER_MEDIAN_ABUNDANCE, EXPLORE_HIGHER_MEDIAN_ABUNDANCE,
+    SEED_SIMILAR_AVERAGE_ABUNDANCE
 };
 
 struct heuristic_name_t{
@@ -77,6 +76,7 @@ vector<heuristic_name_t> heuristic_dic = {
         {SEED_LOWER_MEDIAN_ABUNDANCE,        "s-ma"},
         {SEED_HIGHER_AVERAGE_ABUNDANCE,      "s+aa"},
         {SEED_HIGHER_MEDIAN_ABUNDANCE,       "s+ma"},
+        {SEED_SIMILAR_AVERAGE_ABUNDANCE,     "s=aa"},
         // what to do while extending
         {EXPLORE_LESS_CONNECTED,             "e-c"},
         {EXPLORE_MORE_CONNECTED,             "e+c"},
@@ -619,7 +619,7 @@ public:
     }
 
 
-    void DFS_visit(int u) {
+    void DFS_visit(int u, int &last_unitig) {
         if(ALGOMODE == BRACKETCOMP){
             if(global_issinksource[u]==1){
                 vector<edge_t> adju = adjList.at(u);
@@ -856,6 +856,7 @@ public:
                             }
                         }
                     }
+                    last_unitig = y;
                 }
             } else if (color[x] == 'g') {
                 time = time + 1;
@@ -992,6 +993,23 @@ public:
             return d(u.median_ab, unitigs[e1.toNode].median_ab) < d(u.median_ab, unitigs[e2.toNode].median_ab);
         }
     };
+
+    void sort_closer_count_unitig(int *special_order, const char *color, int start, int last_unitig){
+        double min = d(unitigs[start].mean_ab, unitigs[last_unitig].mean_ab);
+        int i_min = start;
+        for(int j = start + 1; j < V; j++){
+            int i = special_order[j];
+            if(color[i] != 'w') continue;
+            int dis = d(unitigs[i].mean_ab, unitigs[last_unitig].mean_ab);
+            if(dis < min) {
+                min = dis;
+                i_min = i;
+            }
+            if(dis == 0)
+                break;
+        }
+        swap(special_order[start], special_order[i_min]);
+    }
 
     void DFS() {
         if(ALGOMODE == NODEASSIGN){
@@ -1171,19 +1189,24 @@ public:
         cout<<"Basic V loop time: "<<readTimer() - time_a<<" sec"<<endl;
 
         time_a = readTimer();
+        int last_unitig = special_order[0];
         for (int j = 0; j < V; j++) {
             int i; // NOTE: unitig seed here!
+
             if (ALGOMODE == OUTDEGREE_DFS || ALGOMODE == OUTDEGREE_DFS_1 || ALGOMODE == INDEGREE_DFS ||
                 ALGOMODE == INDEGREE_DFS_1 || ALGOMODE == SOURCEFIRST)
                 i = sortStruct[j].node;
-            else
+            else {
+                if(std::find(FLG_HEURISTIC.begin(), FLG_HEURISTIC.end(), SEED_SIMILAR_AVERAGE_ABUNDANCE) != FLG_HEURISTIC.end())
+                    sort_closer_count_unitig(special_order, color, j, last_unitig);
                 i = special_order[j];
+            }
 
             if (color[i] == 'w') { // if the node is not used
                 if (DBGFLAG == DFSDEBUGG)
                     cout << "visit start of node: " << i << endl;
 
-                DFS_visit(i);
+                DFS_visit(i, last_unitig);
             }
         }
         cout<<"DFS time: "<<readTimer() - time_a<<" sec"<<endl;
@@ -1521,17 +1544,17 @@ int read_unitig_file(const string& unitigFileName, vector<unitig_struct_t>& unit
             //cout << "string stream: " << line.substr(abpos, Lpos - abpos) << "\n";
             //cout << "ln = " << unitig_struct.ln << "\n";
             string ab;
-            double mean_ab = 0;
+            double sums_ab = 0;
             while(ss >> ab){
                 int a = stoi(ab);
                 //cout << a << " ";
                 unitig_struct.ab.push_back(a);
-                mean_ab += a;
+                sums_ab += a;
             }
             //cout << "\n";
-            unitig_struct.mean_ab = mean_ab / unitig_struct.ab.size();
+            unitig_struct.mean_ab = sums_ab / unitig_struct.ab.size();
             unitig_struct.median_ab = median(unitig_struct.ab);
-            //cout << "unitig.mean_ab = " << unitig_struct.mean_ab << "\n";
+            //cout << "unitig.sums_ab = " << unitig_struct.sums_ab << "\n";
             //cout << "unitig.median_ab = " << unitig_struct.median_ab << "\n";
 
            sscanf(line.substr(Lpos, line.length() - Lpos).c_str(), "%[^\n]s", edgesline);

@@ -5,8 +5,9 @@ set -e
 PATH="/home/enrico/bio-bin/bcalm/":$PATH
 
 mkdir -p "bcalm-test-dir"
-s="SRR/SRR001665/SRR001665_1.fasta"
+#s="/home/enrico/CLionProjects/UST/SRR/SRR001665/SRR001665_1.fasta"
+s="/home/enrico/CLionProjects/UST/SRR/SRR5853087/SRR5853087.fasta"
 
-bcalm -max-memory 16000 -nb-cores 4 -kmer-size 31 -abundance-min 2 \
--in "$s" -all-abundance-counts -verbose 3
-mv "SRR001665_1.unitigs.fa" "bcalm-test-dir/SRR001665_1.a2.unitigs.t4.fa"
+bcalm -max-memory 10000 -nb-cores 1 -nb-glue-partitions 200 -kmer-size 31 -abundance-min 2 \
+-in "$s" -all-abundance-counts
+mv "$(basename "$s" ".fasta").unitigs.fa" "${HOME}/USTAR/$(basename "$s" ".fasta").a2.unitigs.fa"

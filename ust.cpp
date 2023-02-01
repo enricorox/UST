@@ -227,7 +227,7 @@ string delSpaces(string &str) {
 }
 
 /**
- * Conver '+' to true and '-' to false
+ * Convert '+' to true and '-' to false
  */
 bool charToBool(char c) {
     if (c == '+') {
@@ -1014,7 +1014,7 @@ public:
     void DFS() {
         if(ALGOMODE == NODEASSIGN){
             for (int i=0; i<V; i++) {
-                nodeSign[i] = true;
+                nodeSign[i] = true; // NOTE: this is not executed!!!
                 if(global_plusindegree[i]< global_indegree[i] - global_plusindegree[i]){
                     nodeSign[i] = false;
                 }
@@ -1355,7 +1355,7 @@ public:
                 //for each line in file
                 string sequenceFromFile = "";//getline
                 getline (sequenceStringFile,sequenceFromFile);
-                if(!nodeSign[uid]){
+                if(!nodeSign[uid]){ // NOTE nodeSign is only initialized at 1017 (not initialized here!)
                     unitigString =  reverseComplement(sequenceFromFile);
                 }else{
                     unitigString =  sequenceFromFile;

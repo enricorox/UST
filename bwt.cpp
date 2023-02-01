@@ -2,14 +2,12 @@
 // Created by enrico on 12/12/22.
 //
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
-#include "counts.h"
 
-typedef unsigned char byte;
+typedef unsigned int byte;
 
 byte *rotlexcmp_buf = NULL;
 int rottexcmp_bufsize = 0;
@@ -87,12 +85,19 @@ void bwt_decode(byte *buf_in, byte *buf_out, int size, int primary_index)
     }
 }
 
+void print(byte *buf, int size){
+    for(int i = 0; i < size; i++){
+        printf("%d ", buf[i]);
+    }
+    printf("\n");
+}
+
 int main()
 {
     //byte buf1[] = "Polska Wikipedia";
-    byte buf1 = counts;
+    byte buf1[] = {1,2,3,2,3,2,3,2,4,4,2,4,2};
     //int size = strlen((const char*)buf1);
-    int size = counts.size();
+    int size = 13;
     byte buf2[size];
     byte buf3[size];
     int primary_index;
@@ -106,5 +111,9 @@ int main()
     // Print out encode/decode results:
     //printf ("Input: <%.*s>\n", size, buf1);
     //printf ("Output: <%.*s>\n", size, buf2);
+    printf("Input:\n");
+    print(buf1, size);
+    printf("Output:\n");
+    print(buf2, size);
     return 0;
 }

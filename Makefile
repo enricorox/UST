@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-c -w -std=c++11 -O2
+CFLAGS=-c -Wall -std=c++11 -O0 -g -ggdb
 
 SOURCES=ust.cpp
 OBJECTS=$(SOURCES:.cpp=.o)

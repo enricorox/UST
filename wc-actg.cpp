@@ -31,7 +31,7 @@ int main(int argc, char **argv){
     char * buf = (char *) malloc(max);
 
     // compute cumulative length
-    unsigned int len = 0;
+    unsigned long len = 0;
     while (true) {
         int c = getline(&buf, &max, f);
 
